@@ -7,7 +7,7 @@ import fontkit from "@pdf-lib/fontkit";
 
 const W = 595.28, H = 841.89;
 const BLUE = rgb(0.13, 0.25, 0.62);
-const INK = rgb(0.05, 0.1, 0.45);   // javoblar rangi (tuşunarli kök)
+const INK = rgb(0, 0, 0);            // javoblar rangi — yorliqlar bilan bir xil (qora)
 const BLACK = rgb(0, 0, 0);
 const LINE = rgb(0.25, 0.25, 0.25);
 
@@ -46,7 +46,7 @@ const ROWS = [
 ];
 const ROWS_TOP = 245, ROW_STEP = 26;
 
-const LABEL_SIZE = 10.5, ANSWER_SIZE = 11, MIN_SIZE = 8;
+const LABEL_SIZE = 10.5, ANSWER_SIZE = 10.5, MIN_SIZE = 8;
 
 // Matnni berilgan kenglikka sığdiriş: avval şriftni kiçraytiriş,
 // sığmasa — ikki qatorga bölib, ikkinçisini qaytariş
