@@ -8,7 +8,7 @@ export const T = {
     `Xizmat narxi: ${price} so'm.\n` +
     `Boshlash uchun «Start» tugmasini bosing.`,
   // Bot profilidagi qisqa yozuv (setMyShortDescription)
-  botShortDescription: (price) => `O'quvchi Ma'lumotnomasini rasmiylashtirish. Xizmat narxi: ${price} so'm.`,
+  botShortDescription: () => `O'quvchi Ma'lumotnomasini rasmiylashtirish xizmati. Hujjat PDF shaklida taqdim etiladi.`,
   welcome: () =>
     `Assalomu alaykum! Ma'lumotnomani rasmiylashtirish boshlandi.\n` +
     `Iltimos, savollarga ketma-ket javob bering.`,
