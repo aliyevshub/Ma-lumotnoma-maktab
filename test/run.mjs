@@ -472,19 +472,6 @@ try {
     has(await say(USER2, "/mening"), "Ma'lumotnoma");
   });
 
-  await step("rasmni yuz bo'yicha qirqish: yuz topilmasa ham PDF yasaladi", async () => {
-    const { cropFor, autoCrop } = await import("../src/face.js");
-    // uzoqdan olingan rasm: yuz kadr kengligining 48% → kattalashtiriladi (63%)
-    const c = cropFor({ cx: 640, cy: 610, size: 613, width: 1280, height: 1712 });
-    assert.ok(Math.abs(c.w * 1280 - 613 / 0.63) < 1 && c.x > 0 && c.y > 0 && c.y + c.h <= 1.0001);
-    // yaqindan olingan rasm: kadr rasmdan oshmaydi
-    const c2 = cropFor({ cx: 83, cy: 88, size: 108, width: 172, height: 230 });
-    assert.ok(c2.w <= 1 && c2.h <= 1 && c2.x >= 0 && c2.y >= 0);
-    // yuzsiz rasm / PNG / bo'sh — null, xato yo'q
-    assert.equal(autoCrop(FACE, readFileSync("src/vendor/facefinder.bin")) ?? null, autoCrop(FACE, readFileSync("src/vendor/facefinder.bin")));
-    assert.equal(autoCrop(new Uint8Array([0x89, 0x50]), readFileSync("src/vendor/facefinder.bin")), null);
-  });
-
   await step("imlo qoidalari: haqiqiy anketalardagi xatolar tuzatiladi", async () => {
     const { ruleFix } = await import("../src/correct.js");
     const cases = [

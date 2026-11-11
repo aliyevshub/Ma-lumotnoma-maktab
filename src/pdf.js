@@ -118,7 +118,7 @@ function isJpg(b) { return b && b[0] === 0xff && b[1] === 0xd8; }
  * @param {Record<string,string>} answers
  * @param {Uint8Array|null} photo  JPEG/PNG
  */
-export async function buildPdf(fonts, answers, photo, alphabet, crop) {
+export async function buildPdf(fonts, answers, photo, alphabet) {
   const L = (t) => inAlphabet(t, alphabet); // yorliqlar tanlangan yozuvda
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -145,21 +145,11 @@ export async function buildPdf(fonts, answers, photo, alphabet, crop) {
   if (photo && (isJpg(photo) || isPng(photo))) {
     try {
       const img = isPng(photo) ? await doc.embedPng(photo) : await doc.embedJpg(photo);
-      let ix, iy, iw, ih;
-      if (crop) {
-        // yuz bo'yicha qirqilgan qism ramkani to'liq egallaydi
-        const k = Math.max(PHOTO.w / (crop.w * img.width), PHOTO.h / (crop.h * img.height));
-        iw = img.width * k; ih = img.height * k;
-        ix = PHOTO.x - crop.x * iw + (PHOTO.w - crop.w * iw) / 2;
-        iy = py + PHOTO.h - ih + crop.y * ih - (PHOTO.h - crop.h * ih) / 2;
-      } else {
-        // "cover": ramkani to'liq qoplaydi, ortiqchasi qirqiladi
-        const k = Math.max(PHOTO.w / img.width, PHOTO.h / img.height);
-        iw = img.width * k; ih = img.height * k;
-        ix = PHOTO.x + (PHOTO.w - iw) / 2; iy = py + (PHOTO.h - ih) / 2;
-      }
+      // "cover": ramkani to'liq qoplaydi, ortiqchasi qirqiladi
+      const k = Math.max(PHOTO.w / img.width, PHOTO.h / img.height);
+      const iw = img.width * k, ih = img.height * k;
       page.pushOperators(pushGraphicsState(), rectangle(PHOTO.x, py, PHOTO.w, PHOTO.h), clip(), endPath());
-      page.drawImage(img, { x: ix, y: iy, width: iw, height: ih });
+      page.drawImage(img, { x: PHOTO.x + (PHOTO.w - iw) / 2, y: py + (PHOTO.h - ih) / 2, width: iw, height: ih });
       page.pushOperators(popGraphicsState());
       placed = true;
     } catch (e) {
