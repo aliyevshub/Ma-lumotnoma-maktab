@@ -67,7 +67,7 @@ export function createBot(env, fonts) {
     const photo = form.photo_file_id ? await downloadFile(env, form.photo_file_id) : null;
     // yuzni kichik nusxada topamiz (tez), qirqishni katta rasmga qo'llaymiz
     let crop = null;
-    if (photo) {
+    if (photo && env.FACE_CROP === "on") { // yoqish: wrangler.toml → FACE_CROP = "on"
       const small = form.photo_small_file_id && form.photo_small_file_id !== form.photo_file_id
         ? await downloadFile(env, form.photo_small_file_id) : photo;
       crop = autoCrop(small || photo, fonts.cascade);

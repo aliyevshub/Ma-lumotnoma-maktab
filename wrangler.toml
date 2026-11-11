@@ -21,5 +21,6 @@ database_id = "1a9a563e-0a3b-463d-a24d-0635aa69e6ae"
 [vars]
 PRICE = "5000"
 PAYMENT_PROVIDER = "manual"   # keyinchalik: "payme" yoki "stars"
+FACE_CROP = "off"             # 3x4 rasmni yuz bo'yicha avtomatik qirqish: "on" | "off"
 # Maxfiy qiymatlar (wrangler secret put ...):
 #   BOT_TOKEN, ADMIN_ID, CARD_NUMBER, CARD_OWNER, WEBHOOK_SECRET

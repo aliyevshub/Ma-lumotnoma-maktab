@@ -184,7 +184,7 @@ try {
     has(c, "Kiritilgan ma'lumotlarni tekshiring"); has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
     has(c, "biriktirilgan");
     // imlo tuzatish (bepul qoidalar)
-    has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: o'zbek");
+    has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: O'zbek");
     has(c, "20. Rasm 3x4: biriktirilgan ✅");
     assert.ok(!texts(c).includes("suratni rasm (foto) qilib yuboring:"), "20-bandda ko'rsatma chiqdi");
     // ogohlantirish alohida xabar, tugmalar uning ostida
@@ -203,7 +203,7 @@ try {
     has(await say(USER, "qozoq"), "2. Ismi: Shahzoda");
     const c2 = await say(USER, "nimadir");
     has(c2, "Kiritilgan ma'lumotlarni tekshiring");
-    has(c2, "5. Millati: qozoq");
+    has(c2, "5. Millati: Qozoq");
   });
 
   await step("tasdiqlash → karta raqami ko'rsatiladi", async () => {
@@ -407,7 +407,7 @@ try {
     await photo(U, "face5");
     await press(U, "edit");
     await press(U, "e:fel_atvor");
-    has(await say(U, "  sabrli ,  mehrbon "), "sabrli, mehribon");
+    has(await say(U, "  sabrli ,  mehrbon "), "Sabrli, mehribon");
   });
 
   await step("javoblarni tekshirish: ma'nosiz javoblar qabul qilinmaydi", async () => {
@@ -443,9 +443,9 @@ try {
     for (let i = 6; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     const c = await photo(ADMIN, "face7");
     // oddiy harflarda yozilgan javoblar ham yangi alifboga o'girildi
-    has(c, "2. Ismi: Şahzoda"); has(c, "5. Millati: özbek"); has(c, "Yaşaş manzili");
+    has(c, "2. Ismi: Şahzoda"); has(c, "5. Millati: Özbek"); has(c, "Yaşaş manzili");
     has(c, "Aliyev Bahodir Ğayratoviç"); has(c, "Aliyeva Gulçehra"); has(c, "Mustaqillik köçasi");
-    has(c, "kitob öqiydi, rasm çizadi"); has(c, "şifokor böliş"); has(c, "şaxmat");
+    has(c, "Kitob öqiydi, rasm çizadi"); has(c, "Şifokor böliş"); has(c, "Şaxmat");
     has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
     const pdfCalls = await press(ADMIN, "ok");
     const doc = pdfCalls.find((x) => x.method === "sendDocument" && x.document?.file);
@@ -483,6 +483,23 @@ try {
     // yuzsiz rasm / PNG / bo'sh — null, xato yo'q
     assert.equal(autoCrop(FACE, readFileSync("src/vendor/facefinder.bin")) ?? null, autoCrop(FACE, readFileSync("src/vendor/facefinder.bin")));
     assert.equal(autoCrop(new Uint8Array([0x89, 0x50]), readFileSync("src/vendor/facefinder.bin")), null);
+  });
+
+  await step("imlo qoidalari: haqiqiy anketalardagi xatolar tuzatiladi", async () => {
+    const { ruleFix } = await import("../src/correct.js");
+    const cases = [
+      ["sharif", "Javoxir Öğli", "new", "Javoxir öğli"],
+      ["manzil", "Andijon şaxar Naqşbandiy 1 tor 147 uy", "new", "Andijon şahar, Naqşbandiy 1-tor, 147-uy"],
+      ["manzil", "Mustaqillik MFY Maorif ko`cha 16 uy", "latin", "Mustaqillik MFY, Maorif ko'chasi, 16-uy"],
+      ["manzil", "toshkent viloyati chirchiq shahri navbahor mfy 12 uy", "latin", "Toshkent viloyati, Chirchiq shahri, Navbahor MFY, 12-uy"],
+      ["orzular", "Ota onasini rozi qiliş ilmli farzand böliş", "new", "Ota-onasini rozi qiliş, ilmli farzand böliş"],
+      ["bosh_vaqt", "Kitob öqiş rasm çiziş", "new", "Kitob öqiş, rasm çiziş"],
+      ["fanlar", "matematika ona tili ingliz tili", "latin", "Matematika, ona tili, ingliz tili"],
+      ["fel_atvor", "mehribon odobli shox", "latin", "Mehribon, odobli, sho'x"],
+      ["ona_ish", "2 DMTT Tarbiyachi", "latin", "2-DMTT Tarbiyachi"],
+      ["millati", "ozbek", "latin", "O'zbek"],
+    ];
+    for (const [k, v, a, want] of cases) assert.equal(ruleFix(k, v, a), want, `${k}: ${v}`);
   });
 
   console.log(`\nHammasi o'tdi: ${passed} ta tekshiruv ✅`);
