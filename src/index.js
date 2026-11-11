@@ -42,6 +42,10 @@ export default {
           ],
         });
       }
+      // Eski (olib tashlangan) admin/muharrirlar menyusini o'chirish: /setup?key=...&drop=111,222
+      for (const id of (url.searchParams.get("drop") || "").split(",").map((x) => x.trim()).filter((x) => /^\d+$/.test(x))) {
+        await tg(env, "deleteMyCommands", { scope: { type: "chat", chat_id: Number(id) } });
+      }
       // Muharrir menyusi
       for (const id of String(env.EDITOR_ID || "").split(",").map((x) => x.trim()).filter(Boolean)) {
         await tg(env, "setMyCommands", {
