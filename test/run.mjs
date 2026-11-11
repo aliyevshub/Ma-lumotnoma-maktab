@@ -123,6 +123,16 @@ try {
     assert.equal(await post({}, "notogri"), 403);
   });
 
+  await step("/setup — webhook'ni bot özi ulaydi", async () => {
+    assert.equal((await fetch(`http://127.0.0.1:${WK_PORT}/setup?key=xato`)).status, 403);
+    const start = calls.length;
+    const r = await fetch(`http://127.0.0.1:${WK_PORT}/setup?key=${SECRET}`);
+    assert.equal(r.status, 200);
+    const wh = calls.slice(start).find((c) => c.method === "setWebhook");
+    assert.equal(wh.url, `http://127.0.0.1:${WK_PORT}/webhook`);
+    assert.equal(wh.secret_token, SECRET);
+  });
+
   await step("/start — salomlaşiş va 1-savol", async () => {
     const c = await say(USER, "/start");
     has(c, "2A sinfi"); has(c, "Savol 1/20"); has(c, "Familiyasi");
