@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # Shriftlar (TTF) Worker ichiga ikkilik ma'lumot sifatida qo'shiladi
 [[rules]]
 type = "Data"
-globs = ["**/*.ttf"]
+globs = ["**/*.ttf", "**/*.bin"]
 fallthrough = true
 
 # Har kuni 02:17 (UTC) da 30 kundan eski anketalar bazadan o'chiriladi

@@ -9,6 +9,7 @@ import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
 import { ruleFix } from "./correct.js";
 import { inAlphabet } from "./alphabet.js";
+import { autoCrop } from "./face.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -64,7 +65,14 @@ export function createBot(env, fonts) {
   // ---------- PDF ----------
   async function makePdf(form) {
     const photo = form.photo_file_id ? await downloadFile(env, form.photo_file_id) : null;
-    return buildPdf(fonts, form.answers, photo, form.alphabet);
+    // yuzni kichik nusxada topamiz (tez), qirqishni katta rasmga qo'llaymiz
+    let crop = null;
+    if (photo) {
+      const small = form.photo_small_file_id && form.photo_small_file_id !== form.photo_file_id
+        ? await downloadFile(env, form.photo_small_file_id) : photo;
+      crop = autoCrop(small || photo, fonts.cascade);
+    }
+    return buildPdf(fonts, form.answers, photo, form.alphabet, crop);
   }
 
   function pdfName(form) {
@@ -113,11 +121,15 @@ export function createBot(env, fonts) {
   // ---------- Javobni qabul qilish ----------
   async function acceptAnswer(form, q, msg) {
     if (q.type === "photo") {
-      let fileId = null;
-      if (msg.photo?.length) fileId = msg.photo[msg.photo.length - 1].file_id;
+      let fileId = null, smallId = null;
+      if (msg.photo?.length) {
+        fileId = msg.photo[msg.photo.length - 1].file_id;
+        // yuz aniqlash uchun ~320 pikselli nusxa
+        smallId = (msg.photo.find((p) => Math.max(p.width, p.height) >= 320) || msg.photo[msg.photo.length - 1]).file_id;
+      }
       else if (msg.document && /^image\/(jpeg|png)$/.test(msg.document.mime_type || "")) fileId = msg.document.file_id;
       if (!fileId) return send(env, form.chat_id, T.needPhoto);
-      await saveForm(env, form, { photo_file_id: fileId });
+      await saveForm(env, form, { photo_file_id: fileId, photo_small_file_id: smallId });
     } else {
       const text = (msg.text || "").trim();
       if (!text) return send(env, form.chat_id, T.needText);
