@@ -15,8 +15,17 @@ export function adminIds(env) {
   return String(env.ADMIN_ID || "").split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+const html = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 export async function start(env, form) {
-  await send(env, form.chat_id, T.payInfo(price(env), env.CARD_NUMBER || "—", env.CARD_OWNER || "—"));
+  const card = env.CARD_NUMBER || "—";
+  const text = T.payInfo(price(env), html(card), html(env.CARD_OWNER || "—"));
+  const r = await send(env, form.chat_id, text, {
+    parse_mode: "HTML",
+    ...inlineKeyboard([[{ text: T.btnCopyCard, copy_text: { text: card.replace(/\s+/g, "") } }]]),
+  });
+  // ehtiyot uçun: tugma qabul qilinmasa — tugmasiz yuboramiz
+  if (!r.ok) await send(env, form.chat_id, text, { parse_mode: "HTML" });
 }
 
 function price(env) {

@@ -186,7 +186,10 @@ try {
 
   await step("tasdiqlaş → karta raqami körsatiladi", async () => {
     const c = await press(USER, "ok");
-    has(c, "8600 1234 5678 9012"); has(c, "ALIYEV A."); has(c, "5 000 söm");
+    has(c, "<code>8600 1234 5678 9012</code>"); has(c, "ALIYEV A."); has(c, "5 000 söm");
+    const m = c.find((x) => x.text?.includes("<code>"));
+    assert.equal(m.parse_mode, "HTML");
+    assert.equal(m.reply_markup.inline_keyboard[0][0].copy_text.text, "8600123456789012");
   });
 
   await step("çek ornida matn — çek söraladi", async () => {

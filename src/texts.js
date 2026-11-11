@@ -21,12 +21,15 @@ export const T = {
   chooseEdit: "Qaysi javobni özgartirasiz?",
   editAsk: (label) => `Yangi javobni yuboring:\n\n${label}`,
 
+  // HTML: karta raqami <code> içida — bosilsa nusxalanadi
   payInfo: (price, card, owner) =>
     `Anketa tayyor ✅\n\n` +
-    `Ma'lumotnoma narxi: ${price} söm.\n\n` +
+    `Ma'lumotnoma narxi: <b>${price} söm</b>.\n\n` +
     `Quyidagi kartaga ${price} söm ötkazing (Payme, Click yoki bank ilovasi orqali):\n\n` +
-    `💳 ${card}\n👤 ${owner}\n\n` +
+    `💳 <code>${card}</code>\n👤 ${owner}\n\n` +
+    `👆 Karta raqamini nusxalaş uçun ustiga bosing yoki pastdagi tugmani bosing.\n\n` +
     `Tölovdan keyin çek rasmini (skrinşot) şu yerga yuboring.`,
+  btnCopyCard: "📋 Karta raqamini nusxalaş",
   receiptReceived: "Çek qabul qilindi ✅ Admin tekşirgandan keyin PDF şu yerga keladi.",
   waitAdmin: "Çekingiz tekşirilmoqda. Iltimos, biroz kuting.",
   needReceipt: "Iltimos, tölov çekini rasm (foto yoki fayl) qilib yuboring.",
