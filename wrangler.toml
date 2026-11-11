@@ -12,7 +12,7 @@ fallthrough = true
 [[d1_databases]]
 binding = "DB"
 database_name = "malumotnoma"
-database_id = "BU_YERGA_D1_ID"   # wrangler d1 create malumotnoma → çiqqan id
+database_id = "1a9a563e-0a3b-463d-a24d-0635aa69e6ae"
 
 [vars]
 CLASS_NAME = "2A"
