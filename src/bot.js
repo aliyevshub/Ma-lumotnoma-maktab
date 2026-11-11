@@ -8,7 +8,7 @@ import { provider, adminIds } from "./payments/index.js";
 import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
 import { ruleFix } from "./correct.js";
-import { inAlphabet } from "./alphabet.js";
+import { inAlphabet, toNew } from "./alphabet.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -153,7 +153,7 @@ export function createBot(env, fonts) {
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
     const text = q.type === "photo" ? T.adminEditAskPhoto(displayName(f), f.id)
-      : T.adminEditAsk(displayName(f), f.id, label, f.answers[key] || "—");
+      : T.adminEditAsk(displayName(f), f.id, label, f.answers[key] || "—", f.alphabet === "new");
     await send(env, cq.message.chat.id, text, { reply_markup: { force_reply: true } });
   }
 
@@ -178,8 +178,10 @@ export function createBot(env, fonts) {
       await saveForm(env, f, { photo_file_id: fileId });
     } else {
       if (!text) { await send(env, msg.chat.id, T.writeNeedText); return true; }
-      // admin yozganidek saqlanadi (avtomatik o'zgartirishsiz)
-      await saveForm(env, f, { answers: { ...f.answers, [q.key]: text.replace(/\s+/g, " ").slice(0, 300) } });
+      // admin yozganidek saqlanadi; anketa yangi alifboda bo'lsa — faqat harflar o'giriladi
+      let value = text.replace(/\s+/g, " ").slice(0, 300);
+      if (f.alphabet === "new") value = toNew(value.replace(/[`‘’ʻʼ´]/g, "'"));
+      await saveForm(env, f, { answers: { ...f.answers, [q.key]: value } });
     }
     await clearAdminState(msg.from.id);
     await send(env, msg.chat.id, T.adminEditSaved);

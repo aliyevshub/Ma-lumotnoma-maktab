@@ -283,7 +283,8 @@ try {
 
   await step("admin bandni tuzatadi → yangi qoralama", async () => {
     has(await press(ADMIN, "ae:1", 557), "qaysi bandni tuzatasiz");
-    has(await press(ADMIN, "af:1:orzular", 558), "Hozirgi: Shifokor bo'lish");
+    const ask = await press(ADMIN, "af:1:orzular", 558);
+    has(ask, "Hozirgi: Shifokor bo'lish"); has(ask, "Anketa yozuvi: oddiy lotin");
     const c = await say(ADMIN, "Shifokor bo'lish, ota-onasini xursand qilish");
     has(c, "Saqlandi"); has(c, "17. Kelajakdagi orzulari: Shifokor bo'lish, ota-onasini xursand qilish");
     assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file), "yangi qoralama kelmadi");
@@ -516,6 +517,11 @@ try {
     const txt = execSync(`pdftotext "${doc.document.file}" -`).toString();
     assert.ok(txt.includes("Şarifi") && txt.includes("Qaydlar uçun") && txt.includes("Böş vaqtida"), "PDF yorliqlari yangi alifboda emas");
     assert.ok(txt.includes("Şahzoda"), "javob o'zgarib ketgan");
+    // admin yangi alifbodagi anketani oddiy lotinda tahrirlaydi → avtomatik o'giriladi
+    const id = asId(pdfCalls);
+    has(await press(ADMIN, `af:${id}:manzil`, 900), "yangi alifbo (avtomatik o'giriladi)");
+    const e = await say(ADMIN, "Toshkent shahar, Mustaqillik ko`chasi 5-uy");
+    has(e, "Toşkent şahar, Mustaqillik köçasi 5-uy");
   });
 
   await step("PDF'dan keyin «hujjatni saqlab qo'ying» eslatmasi", async () => {

@@ -147,8 +147,10 @@ export const T = {
   btnDeliver: "📤 Foydalanuvchiga yuborish",
   btnRedeliver: "📤 Qayta yuborish",
   adminEditChoose: (name, id) => `✏️ ${name} (anketa #${id}) — qaysi bandni tuzatasiz?`,
-  adminEditAsk: (name, id, label, cur) =>
-    `✏️ ${name} (anketa #${id})\n${label}\n\nHozirgi: ${cur}\n\nYangi qiymatni yozing (bekor qilish: /bekor):`,
+  adminEditAsk: (name, id, label, cur, isNew) =>
+    `✏️ ${name} (anketa #${id})\n${label}\n\nHozirgi: ${cur}\n` +
+    `Anketa yozuvi: ${isNew ? "yangi alifbo (avtomatik o'giriladi)" : "oddiy lotin"}\n\n` +
+    `Yangi qiymatni yozing (bekor qilish: /bekor):`,
   adminEditAskPhoto: (name, id) => `✏️ ${name} (anketa #${id})\nYangi 3x4 rasmni yuboring (bekor qilish: /bekor):`,
   adminEditNeedPhoto: "Iltimos, rasm (foto) yuboring.",
   adminEditSaved: "✅ Saqlandi. Yangilangan qoralama:",
