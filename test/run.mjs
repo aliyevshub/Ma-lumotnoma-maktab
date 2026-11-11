@@ -198,7 +198,8 @@ try {
 
   await step("tasdiqlash → karta raqami ko'rsatiladi", async () => {
     const c = await press(USER, "ok");
-    has(c, "<code>8600 1234 5678 9012</code>"); has(c, "ALIYEV A."); has(c, "5 000 so'm");
+    has(c, "Karta raqami: <code>8600 1234 5678 9012</code>"); has(c, "Karta egasi: ALIYEV A."); has(c, "To'lov tartibi");
+    assert.ok(!texts(c).includes("nusxalash uchun raqam ustiga")); has(c, "ALIYEV A."); has(c, "5 000 so'm");
     const m = c.find((x) => x.text?.includes("<code>"));
     assert.equal(m.parse_mode, "HTML");
     assert.equal(m.reply_markup.inline_keyboard[0][0].copy_text.text, "8600123456789012");

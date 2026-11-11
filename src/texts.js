@@ -34,14 +34,18 @@ export const T = {
 
   // HTML: karta raqami <code> ichida — bosilsa nusxalanadi
   payInfo: (price, card, owner) =>
-    `Anketa qabul qilindi ✅\n\n` +
-    `Xizmat narxi: <b>${price} so'm</b>.\n\n` +
-    `To'lovni quyidagi karta raqamiga amalga oshiring (Payme, Click yoki bank ilovasi orqali):\n\n` +
-    `💳 <code>${card}</code>\n👤 ${owner}\n\n` +
-    `Karta raqamini nusxalash uchun raqam ustiga yoki quyidagi tugmaga bosing.\n\n` +
-    `To'lovdan so'ng to'lov chekini (skrinshot) shu yerga yuboring.\n\n` +
-    `<i>Eslatma: to'lov administrator tomonidan qo'lda tekshiriladi. Shu sababli hujjat darhol emas, ` +
-    `tekshiruvdan so'ng yuboriladi. Ba'zi hollarda bu bir necha soat davom etishi mumkin.</i>`,
+    `📄 <b>Anketa qabul qilindi</b>\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `💰 <b>Xizmat narxi:</b> ${price} so'm\n\n` +
+    `💳 <b>To'lov rekvizitlari</b>\n` +
+    `Karta raqami: <code>${card}</code>\n` +
+    `Karta egasi: ${owner}\n\n` +
+    `📌 <b>To'lov tartibi</b>\n` +
+    `1. Payme, Click yoki bank ilovasi orqali ko'rsatilgan karta raqamiga ${price} so'm o'tkazing.\n` +
+    `2. To'lov chekini (skrinshot) shu yerga yuboring.\n` +
+    `3. Chek tekshirilgach, Ma'lumotnoma PDF shaklida yuboriladi.\n\n` +
+    `ℹ️ <i>To'lov administrator tomonidan qo'lda tekshiriladi. Hujjat tekshiruvdan so'ng yuboriladi; ` +
+    `bu jarayon bir necha soat davom etishi mumkin.</i>`,
   btnCopyCard: "📋 Karta raqamini nusxalash",
   receiptReceived:
     "To'lov cheki qabul qilindi ✅\n" +
