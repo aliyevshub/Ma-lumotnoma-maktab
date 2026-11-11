@@ -131,6 +131,9 @@ try {
     const wh = calls.slice(start).find((c) => c.method === "setWebhook");
     assert.equal(wh.url, `http://127.0.0.1:${WK_PORT}/webhook`);
     assert.equal(wh.secret_token, SECRET);
+    const desc = calls.slice(start).find((c) => c.method === "setMyDescription");
+    assert.ok(desc.description.includes("2A sinfi") && desc.description.includes("Start"));
+    assert.ok(calls.slice(start).some((c) => c.method === "setMyShortDescription"));
   });
 
   await step("/start — salomlaşiş va 1-savol", async () => {
@@ -302,6 +305,75 @@ try {
     const docs = c.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
     assert.equal(docs.length, 1, "admin PDF'ni bir marta olişi kerak");
     has(await say(ADMIN, "/holat"), "Jami tuşum: 5 000 söm");
+  });
+
+  const USER2 = 222;
+  const sentTo = (cs, id) => cs.filter((x) => Number(x.chat_id) === id && (x.text || x.caption));
+
+  await step("xabar yoziş: tugma → kimga ekani → tasdiq → yuboriladi", async () => {
+    has(await press(ADMIN, "w:1", 700), "Xabar kimga: Aliyeva Şahzoda (anketa #1)");
+    const c = await say(ADMIN, "Assalomu alaykum, tekşiruv xabari");
+    has(c, "Kimga: Aliyeva Şahzoda (anketa #1)");
+    assert.equal(sentTo(c, USER).length, 0, "tasdiqsiz yuborildi!");
+    const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.callback_data);
+    assert.deepEqual(kb, ["ws:1", "wc"]);
+    const c2 = await press(ADMIN, "ws:1", 701);
+    const toUser = sentTo(c2, USER);
+    assert.equal(toUser.length, 1);
+    assert.ok(toUser[0].text.startsWith("✉️ Admin xabari (anketa #1)"));
+    assert.ok(toUser[0].text.includes("tekşiruv xabari"));
+    has(c2, "Yuborildi: Aliyeva Şahzoda");
+  });
+
+  await step("xabar yoziş: Bekor — hech narsa ketmaydi", async () => {
+    await press(ADMIN, "w:1", 702);
+    await say(ADMIN, "yuborilmasligi kerak");
+    const c = await press(ADMIN, "wc", 703);
+    has(c, "bekor qilindi");
+    assert.equal(sentTo(c, USER).length, 0);
+    const c2 = await press(ADMIN, "ws:1", 703);
+    assert.equal(sentTo(c2, USER).length, 0, "bekor qilingandan keyin yuborildi!");
+  });
+
+  await step("xabar yoziş: boşqa anketa tugmasi bosilsa, eski tasdiq işlamaydi", async () => {
+    await press(ADMIN, "w:1", 704);
+    await say(ADMIN, "1-anketaga xabar");
+    has(await press(ADMIN, "w:3", 705), "anketa #3");
+    const c = await press(ADMIN, "ws:1", 706);
+    assert.equal(sentTo(c, USER).length, 0, "eski tasdiq bilan yuborildi!");
+    assert.ok(JSON.stringify(c).includes("amal qilmaydi"));
+    await say(ADMIN, "/bekor");
+  });
+
+  await step("foydalanuvçi admin xabariga javob beradi → adminga keladi", async () => {
+    const start = calls.length;
+    await post({ message: { message_id: ++msgId, from: from(USER), chat: chat(USER), date: 0, text: "Rahmat, tuşundim",
+      reply_to_message: { message_id: 5, from: { id: 1, is_bot: true, first_name: "bot" }, chat: chat(USER), date: 0,
+        text: "✉️ Admin xabari (anketa #1):\n\nsalom" } } });
+    const c = calls.slice(start);
+    has(c, "Javob: Aliyeva Şahzoda (anketa #1)");
+    assert.ok(c.some((x) => x.method === "copyMessage" && Number(x.chat_id) === ADMIN));
+    has(c, "adminga yuborildi");
+  });
+
+  await step("xato rad etilgan çekni «Baribir tasdiqlaş» bilan tasdiqlaş", async () => {
+    await say(USER2, "/start");
+    for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Şahzoda", "Madina"));
+    await photo(USER2, "face3");
+    await press(USER2, "ok");
+    const c = await photo(USER2, "receipt9");
+    const adm = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
+    const rows = adm.reply_markup.inline_keyboard;
+    assert.equal(rows[1][0].text, "✉️ Foydalanuvçiga yoziş");
+    const pid = rows[0][0].callback_data.split(":")[1];
+    await press(ADMIN, `rj:${pid}`, 800);
+    const r = await say(ADMIN, "Pul kelmadi");
+    const edit = r.find((x) => x.method === "editMessageReplyMarkup");
+    assert.equal(edit.reply_markup.inline_keyboard[0][0].callback_data, `ap:${pid}`);
+    const c2 = await press(ADMIN, `ap:${pid}`, 800);
+    has(c2, "Tölov tasdiqlandi");
+    assert.ok(c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER2 && x.document?.file));
+    has(await press(ADMIN, `ap:${pid}`, 800), "allaqaçon");
   });
 
   console.log(`\nHammasi ötdi: ${passed} ta tekshiruv ✅`);

@@ -55,21 +55,24 @@ export async function onUserMessage(env, form, msg) {
   const who = [u.first_name, u.last_name].filter(Boolean).join(" ") +
     (u.username ? ` (@${u.username})` : "") + ` [${form.chat_id}]`;
   const caption = T.adminReceipt({ ...p, amount: price(env) }, { id: form.id, name: displayName(form) }, who);
-  const kb = inlineKeyboard([[
-    { text: T.btnApprove, callback_data: `ap:${p.id}` },
-    { text: T.btnReject, callback_data: `rj:${p.id}` },
-  ]]);
+  const kb = inlineKeyboard([
+    [{ text: T.btnApprove, callback_data: `ap:${p.id}` }, { text: T.btnReject, callback_data: `rj:${p.id}` }],
+    [{ text: T.btnWrite, callback_data: `w:${form.id}` }],
+  ]);
   for (const admin of adminIds(env)) {
     const method = r.kind === "photo" ? "sendPhoto" : "sendDocument";
     await tg(env, method, { chat_id: admin, [r.kind]: r.fileId, caption, ...kb });
   }
 }
 
-async function finishAdminMessage(env, chatId, messageId, note) {
-  if (!messageId) return;
-  await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: [] } });
+// Qarordan keyin çek ostidagi tugmalarni almaştiriş va izoh yoziş
+async function finishAdminMessage(env, chatId, messageId, note, rows = []) {
+  if (!messageId) return send(env, chatId, note, rows.length ? inlineKeyboard(rows) : {});
+  await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: rows } });
   await send(env, chatId, note, { reply_to_message_id: messageId });
 }
+
+const writeRow = (formId) => [{ text: T.btnWrite, callback_data: `w:${formId}` }];
 
 export async function onAdminCallback(env, cq, data, hooks) {
   const adminChat = cq.message.chat.id;
@@ -78,13 +81,17 @@ export async function onAdminCallback(env, cq, data, hooks) {
   const by = cq.from.username ? `@${cq.from.username}` : cq.from.first_name || "admin";
 
   if (action === "ap") {
+    const p0 = await env.DB.prepare("SELECT * FROM payments WHERE id = ?").bind(id).first();
+    const f0 = p0 && (await formById(env, p0.form_id));
+    if (f0?.paid) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminAlreadyPaid });
+    // xato rad etilgan çekni ham tasdiqlaş mumkin
     const res = await env.DB.prepare(
-      "UPDATE payments SET status = 'approved', decided_at = datetime('now') WHERE id = ? AND status = 'pending'",
+      "UPDATE payments SET status = 'approved', decided_at = datetime('now') WHERE id = ? AND status IN ('pending', 'rejected')",
     ).bind(id).run();
     if (!res.meta.changes) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminAlready });
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     const p = await env.DB.prepare("SELECT * FROM payments WHERE id = ?").bind(id).first();
-    await finishAdminMessage(env, adminChat, cq.message.message_id, T.adminApproved(id, by));
+    await finishAdminMessage(env, adminChat, cq.message.message_id, T.adminApproved(id, by), [writeRow(p.form_id)]);
     await hooks.onPaid(p.form_id);
     return;
   }
@@ -95,8 +102,8 @@ export async function onAdminCallback(env, cq, data, hooks) {
       return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminAlready });
     }
     await env.DB.prepare(
-      "INSERT OR REPLACE INTO admin_state (admin_id, payment_id, message_id) VALUES (?, ?, ?)",
-    ).bind(cq.from.id, id, cq.message.message_id).run();
+      "INSERT OR REPLACE INTO admin_state (admin_id, payment_id, message_id, mode, form_id) VALUES (?, ?, ?, 'reject', ?)",
+    ).bind(cq.from.id, id, cq.message.message_id, p.form_id).run();
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     await send(env, adminChat, T.adminAskReason(id), { reply_markup: { force_reply: true } });
   }
@@ -105,7 +112,7 @@ export async function onAdminCallback(env, cq, data, hooks) {
 // Admin rad etiş sababini yozayotgan bölsa — true qaytaradi
 export async function onAdminText(env, msg) {
   const st = await env.DB.prepare("SELECT * FROM admin_state WHERE admin_id = ?").bind(msg.from.id).first();
-  if (!st) return false;
+  if (!st || st.mode !== "reject") return false;
   const text = (msg.text || "").trim();
   if (text === "/bekor") {
     await env.DB.prepare("DELETE FROM admin_state WHERE admin_id = ?").bind(msg.from.id).run();
@@ -127,6 +134,9 @@ export async function onAdminText(env, msg) {
   const form = await formById(env, p.form_id);
   if (form && form.status === "pending") await saveForm(env, form, { status: "payment" });
   await send(env, p.chat_id, T.rejected(reason));
-  await finishAdminMessage(env, msg.chat.id, st.message_id, T.adminRejected(p.id, reason));
+  await finishAdminMessage(env, msg.chat.id, st.message_id, T.adminRejected(p.id, reason), [
+    [{ text: T.btnApproveAnyway, callback_data: `ap:${p.id}` }],
+    writeRow(p.form_id),
+  ]);
   return true;
 }

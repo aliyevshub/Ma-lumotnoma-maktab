@@ -68,7 +68,10 @@ export function createBot(env, fonts) {
       await saveForm(env, form, { pdf_file_id: fileId });
       for (const a of adminIds(env)) {
         if (String(a) === String(form.chat_id)) continue;
-        await tg(env, "sendDocument", { chat_id: a, document: fileId, caption: `${T.adminPdfCopy(displayName(form))} (#${form.id})` });
+        await tg(env, "sendDocument", {
+          chat_id: a, document: fileId, caption: `${T.adminPdfCopy(displayName(form))} (#${form.id})`,
+          ...inlineKeyboard([[{ text: T.btnWrite, callback_data: `w:${form.id}` }]]),
+        });
       }
     } catch (e) {
       console.log("PDF xato:", e?.stack || e);
@@ -214,6 +217,84 @@ export function createBot(env, fonts) {
     return false;
   }
 
+  // ---------- Admin → foydalanuvçi xabari ----------
+  // Xavfsizlik: yoziş faqat aniq anketa tugmasidan boşlanadi, yuboriştan oldin
+  // qabul qiluvçi ismi bilan tasdiq söraladi; yangi tugma eski holatni almaştiradi.
+  async function adminState(adminId) {
+    return env.DB.prepare("SELECT * FROM admin_state WHERE admin_id = ?").bind(adminId).first();
+  }
+  async function clearAdminState(adminId) {
+    await env.DB.prepare("DELETE FROM admin_state WHERE admin_id = ?").bind(adminId).run();
+  }
+
+  async function startWrite(cq, formId) {
+    const f = await formById(env, formId);
+    if (!f) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminNotFound });
+    await env.DB.prepare(
+      "INSERT OR REPLACE INTO admin_state (admin_id, payment_id, message_id, mode, form_id, draft) VALUES (?, 0, NULL, 'write', ?, NULL)",
+    ).bind(cq.from.id, f.id).run();
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    await send(env, cq.message.chat.id, T.writeAsk(displayName(f), f.id), { reply_markup: { force_reply: true } });
+  }
+
+  // true — xabar şu yerda qayta işlandi
+  async function onAdminWriteText(msg) {
+    const st = await adminState(msg.from.id);
+    if (!st || st.mode !== "write") return false;
+    const text = (msg.text || "").trim();
+    if (text === "/bekor") {
+      await clearAdminState(msg.from.id);
+      await send(env, msg.chat.id, T.writeCancelled);
+      return true;
+    }
+    if (text.startsWith("/")) return false;
+    if (!text) { await send(env, msg.chat.id, T.writeNeedText); return true; }
+    const f = await formById(env, st.form_id);
+    if (!f) { await clearAdminState(msg.from.id); await send(env, msg.chat.id, T.adminNotFound); return true; }
+    const draft = text.slice(0, 3000);
+    await env.DB.prepare("UPDATE admin_state SET draft = ? WHERE admin_id = ?").bind(draft, msg.from.id).run();
+    await send(env, msg.chat.id, T.writeConfirm(displayName(f), f.id, draft), inlineKeyboard([[
+      { text: T.btnSend, callback_data: `ws:${f.id}` },
+      { text: T.btnCancel, callback_data: "wc" },
+    ]]));
+    return true;
+  }
+
+  async function confirmWrite(cq, formId) {
+    const chatId = cq.message.chat.id;
+    const st = await adminState(cq.from.id);
+    const clearKb = () => tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+    // eski yoki boşqa anketaga tegişli tasdiq tugmasi işlamaydi
+    if (!st || st.mode !== "write" || st.form_id !== formId || !st.draft) {
+      await clearKb();
+      return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.writeExpired, show_alert: true });
+    }
+    const f = await formById(env, formId);
+    await clearAdminState(cq.from.id);
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    await clearKb();
+    const r = await send(env, f.chat_id, T.adminMessageToUser(f.id, st.draft));
+    await send(env, chatId, r.ok ? T.writeSent(displayName(f), f.id) : T.writeFailed);
+  }
+
+  // Foydalanuvçi admin xabariga javob (reply) qilsa — adminga yetkaziladi
+  async function forwardUserReply(msg) {
+    const orig = msg.reply_to_message;
+    const m = orig?.from?.is_bot && (orig.text || "").match(/^✉️ Admin xabari \(anketa #(\d+)\)/);
+    if (!m) return false;
+    const f = await formById(env, Number(m[1]));
+    if (!f || f.chat_id !== msg.chat.id) return false;
+    const u = msg.from || {};
+    const who = [u.first_name, u.last_name].filter(Boolean).join(" ") + (u.username ? ` (@${u.username})` : "");
+    for (const a of adminIds(env)) {
+      await send(env, a, T.userReplyToAdmin(displayName(f), f.id, who),
+        inlineKeyboard([[{ text: T.btnWrite, callback_data: `w:${f.id}` }]]));
+      await tg(env, "copyMessage", { chat_id: a, from_chat_id: msg.chat.id, message_id: msg.message_id });
+    }
+    await send(env, msg.chat.id, T.userReplySent);
+    return true;
+  }
+
   // ---------- Xabarlar ----------
   async function onMessage(msg) {
     if (msg.chat?.type !== "private") return;
@@ -223,9 +304,12 @@ export function createBot(env, fonts) {
     const cmd = rawCmd.split("@")[0].toLowerCase();
 
     if (isAdmin(msg.from?.id)) {
+      if (await onAdminWriteText(msg)) return;
       if (await provider(env).onAdminText?.(env, msg)) return;
       if (cmd && (await adminCommand(msg, cmd, rest.join(" ")))) return;
     }
+
+    if (!cmd && (await forwardUserReply(msg))) return;
 
     const form = await currentForm(env, chatId);
 
@@ -266,7 +350,21 @@ export function createBot(env, fonts) {
     const chatId = cq.message?.chat?.id;
     const done = (text) => tg(env, "answerCallbackQuery", { callback_query_id: cq.id, ...(text ? { text } : {}) });
 
+    if (/^(w|ws):\d+$/.test(data) || data === "wc") {
+      if (!isAdmin(cq.from.id)) return done();
+      if (data === "wc") {
+        await clearAdminState(cq.from.id);
+        await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+        await done();
+        return send(env, chatId, T.writeCancelled);
+      }
+      const id = Number(data.split(":")[1]);
+      return data.startsWith("ws:") ? confirmWrite(cq, id) : startWrite(cq, id);
+    }
+
     if (/^(ap|rj):\d+$/.test(data)) {
+      // yangi qaror tugmasi — boşlangan xabar yozişni bekor qiladi
+      if (isAdmin(cq.from.id)) await clearAdminState(cq.from.id);
       if (!isAdmin(cq.from.id)) return done();
       return provider(env).onAdminCallback(env, cq, data, { onPaid });
     }

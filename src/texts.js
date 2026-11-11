@@ -1,5 +1,13 @@
 // Barça bot matnlari — yangi lotin alifbosida (Ş ş, Ç ç, Ö ö, Ğ ğ).
 export const T = {
+  // Start bosiştan oldin bot çatida körinadigan matn (setMyDescription)
+  botDescription: (cls, price) =>
+    `Assalomu alaykum! 👋\n` +
+    `Bu bot ${cls} sinfi uçun Ma'lumotnoma tayyorlaydi.\n` +
+    `Savollarga javob berasiz, 3x4 rasm yuborasiz, ${price} söm tölaysiz — tayyor PDF şu yerga keladi.\n` +
+    `Boşlaş uçun «Start» tugmasini bosing.`,
+  // Bot profilidagi qisqa yozuv (setMyShortDescription)
+  botShortDescription: (cls) => `${cls} sinfi uçun Ma'lumotnoma — anketa töldiring, PDF oling.`,
   welcome: (cls, price) =>
     `Assalomu alaykum! Bu bot ${cls} sinfi uçun Ma'lumotnoma tayyorlaydi.\n\n` +
     `Savollarga birma-bir javob bering. Oxirida javoblarni tekşirib, ` +
@@ -78,6 +86,25 @@ export const T = {
     `Jami tuşum: ${s.sum} söm`,
   adminHelp:
     "Admin buyruqlari:\n/holat — statistika\n/export — Excel röyxat\n/pdf 12 — 12-raqamli anketa PDF'i",
+  // Admin → foydalanuvçi xabarlari
+  btnWrite: "✉️ Foydalanuvçiga yoziş",
+  btnApproveAnyway: "✅ Baribir tasdiqlaş",
+  btnSend: "✅ Yuboriş",
+  btnCancel: "❌ Bekor",
+  writeAsk: (name, formId) =>
+    `✉️ Xabar kimga: ${name} (anketa #${formId})\n\nXabaringizni yozing (bekor qiliş: /bekor):`,
+  writeConfirm: (name, formId, text) =>
+    `Kimga: ${name} (anketa #${formId})\nXabar: «${text}»\n\nYuboraymi?`,
+  writeSent: (name, formId) => `✅ Yuborildi: ${name} (anketa #${formId})`,
+  writeCancelled: "Xabar yuborilmadi, bekor qilindi.",
+  writeExpired: "Bu xabar endi amal qilmaydi. Yozişni qaytadan boşlang.",
+  writeFailed: "⚠️ Xabar yetib bormadi (foydalanuvçi botni töxtatgan bölişi mumkin).",
+  writeNeedText: "Iltimos, xabarni matn bilan yozing.",
+  adminMessageToUser: (formId, text) =>
+    `✉️ Admin xabari (anketa #${formId}):\n\n${text}\n\nJavob yoziş uçun şu xabarga javob (reply) qiling.`,
+  userReplyToAdmin: (name, formId, who) => `💬 Javob: ${name} (anketa #${formId})\n${who}`,
+  userReplySent: "Javobingiz adminga yuborildi ✅",
+  adminAlreadyPaid: "Bu anketa allaqaçon tasdiqlangan.",
   adminNoData: "Hali tayyor anketa yöq.",
   adminNotFound: "Bunday tayyor anketa topilmadi.",
 };

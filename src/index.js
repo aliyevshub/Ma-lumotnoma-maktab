@@ -3,6 +3,7 @@ import regular from "../fonts/LiberationSerif-Regular.ttf";
 import bold from "../fonts/LiberationSerif-Bold.ttf";
 import { createBot } from "./bot.js";
 import { tg } from "./telegram.js";
+import { T } from "./texts.js";
 
 const fonts = { regular, bold };
 
@@ -27,8 +28,12 @@ export default {
         { command: "yangi", description: "Boşqa farzand uçun yangi anketa" },
         { command: "bekor", description: "Tugallanmagan anketani öçiriş" },
       ] });
+      const cls = env.CLASS_NAME || "2A";
+      const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
+      const d1 = await tg(env, "setMyDescription", { description: T.botDescription(cls, price) });
+      const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(cls) });
       const me = await tg(env, "getMe");
-      return Response.json({ webhook: r, bot: me.result?.username || null });
+      return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, bot: me.result?.username || null });
     }
     if (request.method === "GET") return new Response("Ma'lumotnoma bot işlayapti ✅");
     if (request.method !== "POST" || url.pathname !== "/webhook") return new Response("Not found", { status: 404 });
