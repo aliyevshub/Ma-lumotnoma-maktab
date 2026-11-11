@@ -46,7 +46,7 @@ const ROWS = [
 ];
 const ROWS_TOP = 245, ROW_STEP = 26;
 
-const LABEL_SIZE = 10.5, ANSWER_SIZE = 10.5, MIN_SIZE = 8;
+const LABEL_SIZE = 12, ANSWER_SIZE = 12, MIN_SIZE = 8; // rasmiy anketa standarti: Times uslubi, 12
 
 // Matnni berilgan kenglikka sıg'dirish: avval shriftni kichraytirish,
 // sıg'masa — ikki qatorga bo'lib, ikkinchisini qaytarish
