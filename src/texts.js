@@ -48,7 +48,7 @@ export const T = {
   btnCopyCard: "📋 Karta raqamini nusxalash",
   receiptReceived:
     "To'lov cheki qabul qilindi ✅\n" +
-    "Chek administrator tomonidan tekshirilgach, Ma'lumotnoma shu yerga yuboriladi. " +
+    "Chek tekshirilgach, Ma'lumotnoma shu yerga yuboriladi. " +
     "Tekshiruv bir necha soat davom etishi mumkin. Iltimos, kuting — qayta chek yuborish shart emas.",
   waitAdmin:
     "To'lov cheki tekshirilmoqda. Ma'lumotnoma tekshiruvdan so'ng yuboriladi. " +
