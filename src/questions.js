@@ -1,31 +1,31 @@
 // Anketa savollari — qog'ozdagi Ma'lumotnoma tartibida.
 // label  — PDF'dagi va xulosadagi nom
-// prompt — botda so'raladigan matn (bo'lmasa label işlatiladi)
+// prompt — botda so'raladigan matn (bo'lmasa label ishlatiladi)
 // type   — text | date | phone | photo
 export const QUESTIONS = [
   { key: "familiya", label: "Familiyasi", type: "text" },
   { key: "ism", label: "Ismi", type: "text" },
-  { key: "sharif", label: "Şarifi", type: "text" },
-  { key: "tugilgan", label: "Tuğilgan kun, oy, yil", type: "date",
-    prompt: "Tuğilgan kun, oy, yil\n(masalan: 15.03.2018)" },
+  { key: "sharif", label: "Sharifi", type: "text" },
+  { key: "tugilgan", label: "Tug'ilgan kun, oy, yil", type: "date",
+    prompt: "Tug'ilgan kun, oy, yil\n(masalan: 15.03.2018)" },
   { key: "millati", label: "Millati", type: "text" },
-  { key: "otasi", label: "Otasi", type: "text", prompt: "Otasi (F.I.Ş.)" },
-  { key: "ota_ish", label: "Iş joyi, lavozimi", type: "text",
-    prompt: "Otasining iş joyi, lavozimi" },
-  { key: "onasi", label: "Onasi", type: "text", prompt: "Onasi (F.I.Ş.)" },
-  { key: "ona_ish", label: "Iş joyi, lavozimi", type: "text",
-    prompt: "Onasining iş joyi, lavozimi" },
-  { key: "farzand_soni", label: "Oilada neçta farzand", type: "text" },
-  { key: "nechanchi", label: "Oilada neçançi farzand", type: "text" },
-  { key: "sharoit", label: "Oilaviy şaroiti", type: "text" },
+  { key: "otasi", label: "Otasi", type: "text", prompt: "Otasi (F.I.Sh.)" },
+  { key: "ota_ish", label: "Ish joyi, lavozimi", type: "text",
+    prompt: "Otasining ish joyi, lavozimi" },
+  { key: "onasi", label: "Onasi", type: "text", prompt: "Onasi (F.I.Sh.)" },
+  { key: "ona_ish", label: "Ish joyi, lavozimi", type: "text",
+    prompt: "Onasining ish joyi, lavozimi" },
+  { key: "farzand_soni", label: "Oilada nechta farzand", type: "text" },
+  { key: "nechanchi", label: "Oilada nechanchi farzand", type: "text" },
+  { key: "sharoit", label: "Oilaviy sharoiti", type: "text" },
   { key: "fanlar", label: "Qiziqqan fanlari", type: "text" },
-  { key: "togaraklar", label: "Qanday tögaraklarga qatnaşadi", type: "text" },
-  { key: "bosh_vaqt", label: "Böş vaqtida nimalar bilan şuğullanadi", type: "text", long: true },
+  { key: "togaraklar", label: "Qanday to'garaklarga qatnashadi", type: "text" },
+  { key: "bosh_vaqt", label: "Bo'sh vaqtida nimalar bilan shug'ullanadi", type: "text", long: true },
   { key: "fel_atvor", label: "Fe'l atvor xususiyati", type: "text" },
   { key: "orzular", label: "Kelajakdagi orzulari", type: "text" },
   { key: "telefon", label: "Telefon raqami", type: "phone",
     prompt: "Telefon raqami\n(masalan: +998 90 123 45 67)" },
-  { key: "manzil", label: "Yaşaş manzili (MFY, köça, uy raqami)", type: "text" },
+  { key: "manzil", label: "Yashash manzili (MFY, ko'cha, uy raqami)", type: "text" },
   { key: "rasm", label: "Rasm 3x4", type: "photo",
     prompt: "Rasm 3x4 — suratni rasm (foto) qilib yuboring" },
 ];
@@ -37,7 +37,7 @@ export function questionIndex(key) {
   return QUESTIONS.findIndex((q) => q.key === key);
 }
 
-// Sana: KK.OO.YYYY (., /, - ajratgiçlari ham qabul qilinadi)
+// Sana: KK.OO.YYYY (., /, - ajratgichlari ham qabul qilinadi)
 export function parseDate(text) {
   const m = String(text).trim().match(/^(\d{1,2})[.\/\- ](\d{1,2})[.\/\- ](\d{4})$/);
   if (!m) return null;

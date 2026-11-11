@@ -1,4 +1,4 @@
-// Bot mantiği: anketa, tekşiriş, tahrirlaş, PDF, admin buyruqlari
+// Bot mantig'i: anketa, tekshirish, tahrirlash, PDF, admin buyruqlari
 import { tg, send, sendPdf, sendFile, inlineKeyboard, downloadFile } from "./telegram.js";
 import { QUESTIONS, MAX_LEN, MAX_LEN_LONG, questionIndex, parseDate, parsePhone } from "./questions.js";
 import {
@@ -7,6 +7,7 @@ import {
 import { provider, adminIds } from "./payments/index.js";
 import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
+import { ruleFix, aiFix } from "./correct.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -27,7 +28,7 @@ export function createBot(env, fonts) {
       const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
       return `${i + 1}. ${label}: ${v}`;
     });
-    return `${T.reviewTitle}\n\nSinf: ${cls}\n${lines.join("\n")}`;
+    return `${T.reviewTitle}\n\n${lines.join("\n")}`;
   }
 
   async function showReview(form) {
@@ -80,7 +81,7 @@ export function createBot(env, fonts) {
     }
   }
 
-  // Tölov tasdiqlanganda (har qanday tölov usulidan)
+  // To'lov tasdiqlanganda (har qanday to'lov usulidan)
   async function onPaid(formId) {
     const form = await formById(env, formId);
     if (!form) return;
@@ -89,7 +90,7 @@ export function createBot(env, fonts) {
     await send(env, form.chat_id, T.menuDone, inlineKeyboard([[{ text: T.btnFreeEdit, callback_data: `fe:${form.id}` }]]));
   }
 
-  // Admin uçun tölov yöq — PDF darhol
+  // Admin uchun to'lov yo'q — PDF darhol
   async function adminFree(form) {
     await env.DB.prepare(
       "INSERT INTO payments (form_id, chat_id, amount, provider, status, decided_at) VALUES (?, ?, 0, 'admin', 'approved', datetime('now'))",
@@ -117,6 +118,8 @@ export function createBot(env, fonts) {
       } else if (q.type === "phone") {
         value = parsePhone(text);
         if (!value) return send(env, form.chat_id, T.badPhone);
+      } else {
+        value = ruleFix(q.key, value);
       }
       await saveForm(env, form, { answers: { ...form.answers, [q.key]: value } });
     }
@@ -127,7 +130,15 @@ export function createBot(env, fonts) {
     }
     const next = form.step + 1;
     if (next >= QUESTIONS.length) {
-      await saveForm(env, form, { step: next, status: "review" });
+      // anketa oxirida — sun'iy intellekt bilan imlo tuzatish (kalit bo'lsa)
+      let answers = form.answers;
+      if (env.ANTHROPIC_API_KEY) {
+        await send(env, form.chat_id, T.checking);
+        answers = await aiFix(env, form.answers);
+      }
+      const changed = Object.keys(answers).some((k) => answers[k] !== form.answers[k]);
+      await saveForm(env, form, { step: next, status: "review", answers });
+      if (changed) await send(env, form.chat_id, T.autoFixed);
       return showReview(form);
     }
     await saveForm(env, form, { step: next });
@@ -217,9 +228,9 @@ export function createBot(env, fonts) {
     return false;
   }
 
-  // ---------- Admin → foydalanuvçi xabari ----------
-  // Xavfsizlik: yoziş faqat aniq anketa tugmasidan boşlanadi, yuboriştan oldin
-  // qabul qiluvçi ismi bilan tasdiq söraladi; yangi tugma eski holatni almaştiradi.
+  // ---------- Admin → foydalanuvchi xabari ----------
+  // Xavfsizlik: yozish faqat aniq anketa tugmasidan boshlanadi, yuborishdan oldin
+  // qabul qiluvchi ismi bilan tasdiq so'raladi; yangi tugma eski holatni almashtiradi.
   async function adminState(adminId) {
     return env.DB.prepare("SELECT * FROM admin_state WHERE admin_id = ?").bind(adminId).first();
   }
@@ -237,7 +248,7 @@ export function createBot(env, fonts) {
     await send(env, cq.message.chat.id, T.writeAsk(displayName(f), f.id), { reply_markup: { force_reply: true } });
   }
 
-  // true — xabar şu yerda qayta işlandi
+  // true — xabar shu yerda qayta ishlandi
   async function onAdminWriteText(msg) {
     const st = await adminState(msg.from.id);
     if (!st || st.mode !== "write") return false;
@@ -264,7 +275,7 @@ export function createBot(env, fonts) {
     const chatId = cq.message.chat.id;
     const st = await adminState(cq.from.id);
     const clearKb = () => tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
-    // eski yoki boşqa anketaga tegişli tasdiq tugmasi işlamaydi
+    // eski yoki boshqa anketaga tegishli tasdiq tugmasi ishlamaydi
     if (!st || st.mode !== "write" || st.form_id !== formId || !st.draft) {
       await clearKb();
       return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.writeExpired, show_alert: true });
@@ -277,7 +288,7 @@ export function createBot(env, fonts) {
     await send(env, chatId, r.ok ? T.writeSent(displayName(f), f.id) : T.writeFailed);
   }
 
-  // Foydalanuvçi admin xabariga javob (reply) qilsa — adminga yetkaziladi
+  // Foydalanuvchi admin xabariga javob (reply) qilsa — adminga yetkaziladi
   async function forwardUserReply(msg) {
     const orig = msg.reply_to_message;
     const m = orig?.from?.is_bot && (orig.text || "").match(/^✉️ Admin xabari \(anketa #(\d+)\)/);
@@ -363,7 +374,7 @@ export function createBot(env, fonts) {
     }
 
     if (/^(ap|rj):\d+$/.test(data)) {
-      // yangi qaror tugmasi — boşlangan xabar yozişni bekor qiladi
+      // yangi qaror tugmasi — boshlangan xabar yozishni bekor qiladi
       if (isAdmin(cq.from.id)) await clearAdminState(cq.from.id);
       if (!isAdmin(cq.from.id)) return done();
       return provider(env).onAdminCallback(env, cq, data, { onPaid });
@@ -381,7 +392,7 @@ export function createBot(env, fonts) {
 
     const form = await currentForm(env, chatId);
     if (!form || !["review", "filling"].includes(form.status)) return done();
-    // tölangan anketada faqat bepul tahrirlaş (review) holatida
+    // to'langan anketada faqat bepul tahrirlash (review) holatida
     if (form.status === "filling" && !data.startsWith("e:")) return done();
 
     if (data === "edit") {
@@ -408,7 +419,7 @@ export function createBot(env, fonts) {
       await done();
       await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
       if (form.paid) {
-        // tasdiqdan keyingi bepul tahrirlaş yakuni
+        // tasdiqdan keyingi bepul tahrirlash yakuni
         await saveForm(env, form, { status: "done", free_edit_used: 1, edit_key: null });
         await deliverPdf(form, T.editedPdf);
         return;

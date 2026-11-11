@@ -1,5 +1,5 @@
-// Telegram Bot API uçun yengil klient.
-// TG_API_BASE — lokal sinovda soxta Telegram serveriga yönaltiriş uçun.
+// Telegram Bot API uchun yengil klient.
+// TG_API_BASE — lokal sinovda soxta Telegram serveriga yo'naltirish uchun.
 function base(env) {
   return (env.TG_API_BASE || "https://api.telegram.org").replace(/\/$/, "");
 }
@@ -23,7 +23,7 @@ export function inlineKeyboard(rows) {
   return { reply_markup: { inline_keyboard: rows } };
 }
 
-// PDF (Uint8Array) ni hujjat sifatida yuboriş; Telegram file_id qaytaradi
+// PDF (Uint8Array) ni hujjat sifatida yuborish; Telegram file_id qaytaradi
 export async function sendPdf(env, chatId, bytes, filename, caption) {
   const form = new FormData();
   form.append("chat_id", String(chatId));
@@ -53,7 +53,7 @@ export async function sendFile(env, chatId, bytes, filename, mime, caption) {
   return res.json().catch(() => ({ ok: false }));
 }
 
-// Telegram'dagi faylni yuklab oliş (rasm uçun)
+// Telegram'dagi faylni yuklab olish (rasm uchun)
 export async function downloadFile(env, fileId) {
   const info = await tg(env, "getFile", { file_id: fileId });
   if (!info.ok) return null;

@@ -1,4 +1,4 @@
-// Tölov usulini tanlaş: PAYMENT_PROVIDER = manual (hozir) | payme | stars (keyin)
+// To'lov usulini tanlash: PAYMENT_PROVIDER = manual (hozir) | payme | stars (keyin)
 import * as manual from "./manual.js";
 
 const PROVIDERS = { manual };

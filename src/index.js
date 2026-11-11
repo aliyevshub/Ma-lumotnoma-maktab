@@ -1,4 +1,4 @@
-// Cloudflare Worker kiriş nuqtasi: Telegram webhook
+// Cloudflare Worker kirish nuqtasi: Telegram webhook
 import regular from "../fonts/LiberationSerif-Regular.ttf";
 import bold from "../fonts/LiberationSerif-Bold.ttf";
 import { createBot } from "./bot.js";
@@ -10,7 +10,7 @@ const fonts = { regular, bold };
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    // Webhook'ni bot özi ulaydi: GET /setup?key=<WEBHOOK_SECRET>
+    // Webhook'ni bot o'zi ulaydi: GET /setup?key=<WEBHOOK_SECRET>
     if (request.method === "GET" && url.pathname === "/setup") {
       if (!env.WEBHOOK_SECRET || url.searchParams.get("key") !== env.WEBHOOK_SECRET) {
         return new Response("forbidden", { status: 403 });
@@ -23,10 +23,10 @@ export default {
         drop_pending_updates: true,
       });
       await tg(env, "setMyCommands", { commands: [
-        { command: "start", description: "Anketani boşlaş yoki davom ettiriş" },
-        { command: "mening", description: "Tayyor Ma'lumotnomani qayta oliş" },
-        { command: "yangi", description: "Boşqa farzand uçun yangi anketa" },
-        { command: "bekor", description: "Tugallanmagan anketani öçiriş" },
+        { command: "start", description: "Anketani boshlash yoki davom ettirish" },
+        { command: "mening", description: "Tayyor Ma'lumotnomani qayta olish" },
+        { command: "yangi", description: "Boshqa farzand uchun yangi anketa" },
+        { command: "bekor", description: "Tugallanmagan anketani o'chirish" },
       ] });
       const cls = env.CLASS_NAME || "2A";
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
@@ -35,7 +35,7 @@ export default {
       const me = await tg(env, "getMe");
       return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, bot: me.result?.username || null });
     }
-    if (request.method === "GET") return new Response("Ma'lumotnoma bot işlayapti ✅");
+    if (request.method === "GET") return new Response("Ma'lumotnoma bot ishlayapti ✅");
     if (request.method !== "POST" || url.pathname !== "/webhook") return new Response("Not found", { status: 404 });
 
     if (env.WEBHOOK_SECRET && request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.WEBHOOK_SECRET) {
@@ -47,7 +47,7 @@ export default {
     try {
       await createBot(env, fonts).handle(update);
     } catch (e) {
-      // Telegram qayta-qayta yubormasligi uçun baribir 200 qaytaramiz
+      // Telegram qayta-qayta yubormasligi uchun baribir 200 qaytaramiz
       console.log("update xatosi:", e?.stack || e);
     }
     return new Response("ok");

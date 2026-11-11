@@ -1,4 +1,4 @@
-// Excel (.xlsx) röyxat — tayyor (tölangan) anketalar
+// Excel (.xlsx) ro'yxat — tayyor (to'langan) anketalar
 import { zipSync, strToU8 } from "fflate";
 import { QUESTIONS } from "./questions.js";
 

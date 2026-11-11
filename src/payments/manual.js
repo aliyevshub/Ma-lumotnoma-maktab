@@ -1,10 +1,10 @@
-// Qölda tölov: kartaga ötkaziş → çek rasmi → admin tasdiqlaydi.
-// Keyinçalik payme.js / stars.js xuddi şu interfeys bilan qöşiladi:
-//   start(env, form)                 — tölovni boşlaş (foydalanuvçiga körsatma)
-//   onUserMessage(env, form, msg)    — "payment" holatidagi xabar (çek)
+// Qo'lda to'lov: kartaga o'tkazish → chek rasmi → admin tasdiqlaydi.
+// Keyinchalik payme.js / stars.js xuddi shu interfeys bilan qo'shiladi:
+//   start(env, form)                 — to'lovni boshlash (foydalanuvchiga ko'rsatma)
+//   onUserMessage(env, form, msg)    — "payment" holatidagi xabar (chek)
 //   onAdminCallback(env, cq, data, hooks) — admin tugmalari
-//   onAdminText(env, msg, hooks)     — admin rad etiş sababi
-// Tölov tasdiqlanganda hooks.onPaid(formId) çaqiriladi.
+//   onAdminText(env, msg, hooks)     — admin rad etish sababi
+// To'lov tasdiqlanganda hooks.onPaid(formId) chaqiriladi.
 import { tg, send, inlineKeyboard } from "../telegram.js";
 import { saveForm, formById, displayName } from "../db.js";
 import { T } from "../texts.js";
@@ -24,7 +24,7 @@ export async function start(env, form) {
     parse_mode: "HTML",
     ...inlineKeyboard([[{ text: T.btnCopyCard, copy_text: { text: card.replace(/\s+/g, "") } }]]),
   });
-  // ehtiyot uçun: tugma qabul qilinmasa — tugmasiz yuboramiz
+  // ehtiyot uchun: tugma qabul qilinmasa — tugmasiz yuboramiz
   if (!r.ok) await send(env, form.chat_id, text, { parse_mode: "HTML" });
 }
 
@@ -65,7 +65,7 @@ export async function onUserMessage(env, form, msg) {
   }
 }
 
-// Qarordan keyin çek ostidagi tugmalarni almaştiriş va izoh yoziş
+// Qarordan keyin chek ostidagi tugmalarni almashtirish va izoh yozish
 async function finishAdminMessage(env, chatId, messageId, note, rows = []) {
   if (!messageId) return send(env, chatId, note, rows.length ? inlineKeyboard(rows) : {});
   await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: rows } });
@@ -84,7 +84,7 @@ export async function onAdminCallback(env, cq, data, hooks) {
     const p0 = await env.DB.prepare("SELECT * FROM payments WHERE id = ?").bind(id).first();
     const f0 = p0 && (await formById(env, p0.form_id));
     if (f0?.paid) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminAlreadyPaid });
-    // xato rad etilgan çekni ham tasdiqlaş mumkin
+    // xato rad etilgan chekni ham tasdiqlash mumkin
     const res = await env.DB.prepare(
       "UPDATE payments SET status = 'approved', decided_at = datetime('now') WHERE id = ? AND status IN ('pending', 'rejected')",
     ).bind(id).run();
@@ -109,7 +109,7 @@ export async function onAdminCallback(env, cq, data, hooks) {
   }
 }
 
-// Admin rad etiş sababini yozayotgan bölsa — true qaytaradi
+// Admin rad etish sababini yozayotgan bo'lsa — true qaytaradi
 export async function onAdminText(env, msg) {
   const st = await env.DB.prepare("SELECT * FROM admin_state WHERE admin_id = ?").bind(msg.from.id).first();
   if (!st || st.mode !== "reject") return false;

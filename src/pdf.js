@@ -1,5 +1,5 @@
-// Qog'oz Ma'lumotnomaga öxşaş PDF: ikki qavat kök ramka, sarlavha,
-// o'ng yuqorida 3x4 rasm, çiziqlar ustida javoblar.
+// Qog'oz Ma'lumotnomaga o'xshash PDF: ikki qavat ko'k ramka, sarlavha,
+// o'ng yuqorida 3x4 rasm, chiziqlar ustida javoblar.
 import {
   PDFDocument, rgb, pushGraphicsState, popGraphicsState, rectangle, clip, endPath,
 } from "pdf-lib";
@@ -11,35 +11,35 @@ const INK = rgb(0, 0, 0);            // javoblar rangi — yorliqlar bilan bir x
 const BLACK = rgb(0, 0, 0);
 const LINE = rgb(0.25, 0.25, 0.25);
 
-const LEFT = 62, RIGHT = 535;          // çiziqlar çegarasi
+const LEFT = 62, RIGHT = 535;          // chiziqlar chegarasi
 const PHOTO = { x: 445, top: 70, w: 85, h: 113 }; // 3x4 sm ≈ 85x113 pt
-const TOP_ROWS = [                      // rasm yonidagi qisqa çiziqlar
+const TOP_ROWS = [                      // rasm yonidagi qisqa chiziqlar
   { key: "familiya", label: "Familiyasi", top: 135 },
   { key: "ism", label: "Ismi", top: 162 },
-  { key: "sharif", label: "Şarifi", top: 189 },
+  { key: "sharif", label: "Sharifi", top: 189 },
 ];
 const TOP_RIGHT = 330;
 
-// Asosiy qatorlar (qog'ozdagi tartib). key: null — böş davom çizig'i
+// Asosiy qatorlar (qog'ozdagi tartib). key: null — bo'sh davom chizig'i
 const ROWS = [
-  ["tugilgan", "Tuğilgan kun, oy, yil"],
+  ["tugilgan", "Tug'ilgan kun, oy, yil"],
   ["millati", "Millati"],
   ["otasi", "Otasi"],
-  ["ota_ish", "Iş joyi, lavozimi"],
+  ["ota_ish", "Ish joyi, lavozimi"],
   ["onasi", "Onasi"],
-  ["ona_ish", "Iş joyi, lavozimi"],
-  ["farzand_soni", "Oilada neçta farzand"],
-  ["nechanchi", "Oilada neçançi farzand"],
-  ["sharoit", "Oilaviy şaroiti"],
+  ["ona_ish", "Ish joyi, lavozimi"],
+  ["farzand_soni", "Oilada nechta farzand"],
+  ["nechanchi", "Oilada nechanchi farzand"],
+  ["sharoit", "Oilaviy sharoiti"],
   ["fanlar", "Qiziqqan fanlari"],
-  ["togaraklar", "Qanday tögaraklarga qatnaşadi"],
-  ["bosh_vaqt", "Böş vaqtida nimalar bilan şuğullanadi", { cont: true }],
+  ["togaraklar", "Qanday to'garaklarga qatnashadi"],
+  ["bosh_vaqt", "Bo'sh vaqtida nimalar bilan shug'ullanadi", { cont: true }],
   [null, ""],
   ["fel_atvor", "Fe'l atvor xususiyati"],
   ["orzular", "Kelajakdagi orzulari"],
   ["telefon", "Telefon raqami"],
-  ["manzil", "Yaşaş manzili (MFY, köça, uy raqami)"],
-  ["qaydlar", "Qaydlar uçun"],          // har doim böş
+  ["manzil", "Yashash manzili (MFY, ko'cha, uy raqami)"],
+  ["qaydlar", "Qaydlar uchun"],          // har doim bo'sh
   [null, ""],
   [null, ""],
   [null, ""],
@@ -48,8 +48,8 @@ const ROWS_TOP = 245, ROW_STEP = 26;
 
 const LABEL_SIZE = 10.5, ANSWER_SIZE = 10.5, MIN_SIZE = 8;
 
-// Matnni berilgan kenglikka sığdiriş: avval şriftni kiçraytiriş,
-// sığmasa — ikki qatorga bölib, ikkinçisini qaytariş
+// Matnni berilgan kenglikka sıg'dirish: avval shriftni kichraytirish,
+// sıg'masa — ikki qatorga bo'lib, ikkinchisini qaytarish
 function fit(font, text, width) {
   for (let s = ANSWER_SIZE; s >= MIN_SIZE; s -= 0.5) {
     if (font.widthOfTextAtSize(text, s) <= width) return { size: s, first: text, rest: "" };
@@ -62,7 +62,7 @@ function fit(font, text, width) {
     first = next;
     words.shift();
   }
-  if (!first) { // juda uzun bitta söz
+  if (!first) { // juda uzun bitta so'z
     let i = text.length;
     while (i > 1 && font.widthOfTextAtSize(text.slice(0, i), MIN_SIZE) > width) i--;
     return { size: MIN_SIZE, first: text.slice(0, i), rest: text.slice(i) };
@@ -77,8 +77,8 @@ function truncate(font, text, size, width) {
   return t + "…";
 }
 
-// Çiziq ustiga javob yoziş. Sığmasa: davom çizig'i bölsa unga,
-// aks holda şu çiziq ustida ikki qator qilib.
+// Chiziq ustiga javob yozish. Sıg'masa: davom chizig'i bo'lsa unga,
+// aks holda shu chiziq ustida ikki qator qilib.
 function drawAnswer(page, font, text, x, y, right, contY) {
   if (!text) return;
   const width = right - x - 2;
@@ -88,7 +88,7 @@ function drawAnswer(page, font, text, x, y, right, contY) {
     return;
   }
   if (contY != null) {
-    // normal ölçamda sözma-söz bölib, qolganini davom çizig'iga
+    // normal o'lchamda so'zma-so'z bo'lib, qolganini davom chizig'iga
     const words = text.split(/\s+/);
     let first = "";
     while (words.length) {
@@ -127,7 +127,7 @@ export async function buildPdf(fonts, answers, photo) {
   const page = doc.addPage([W, H]);
   const Y = (top) => H - top;
 
-  // Ramka: tashqi qalin, içki ingiçka
+  // Ramka: tashqi qalin, ichki ingichka
   page.drawRectangle({ x: 26, y: 26, width: W - 52, height: H - 52, borderColor: BLUE, borderWidth: 2.4 });
   page.drawRectangle({ x: 32, y: 32, width: W - 64, height: H - 64, borderColor: BLUE, borderWidth: 0.7 });
 
@@ -143,7 +143,7 @@ export async function buildPdf(fonts, answers, photo) {
   if (photo && (isJpg(photo) || isPng(photo))) {
     try {
       const img = isPng(photo) ? await doc.embedPng(photo) : await doc.embedJpg(photo);
-      // "cover": ramkani töliq qoplaydi, ortiqçasi qirqiladi
+      // "cover": ramkani to'liq qoplaydi, ortiqchasi qirqiladi
       const k = Math.max(PHOTO.w / img.width, PHOTO.h / img.height);
       const iw = img.width * k, ih = img.height * k;
       page.pushOperators(pushGraphicsState(), rectangle(PHOTO.x, py, PHOTO.w, PHOTO.h), clip(), endPath());
@@ -151,7 +151,7 @@ export async function buildPdf(fonts, answers, photo) {
       page.pushOperators(popGraphicsState());
       placed = true;
     } catch (e) {
-      console.log("rasm qöşilmadi:", e?.message);
+      console.log("rasm qo'shilmadi:", e?.message);
     }
   }
   page.drawRectangle({ x: PHOTO.x, y: py, width: PHOTO.w, height: PHOTO.h, borderColor: BLACK, borderWidth: 1.2 });
@@ -160,7 +160,7 @@ export async function buildPdf(fonts, answers, photo) {
     page.drawText(t, { x: PHOTO.x + PHOTO.w / 2 - font.widthOfTextAtSize(t, s) / 2, y: py + 6, size: s, font, color: BLACK });
   }
 
-  // Familiyasi / Ismi / Şarifi
+  // Familiyasi / Ismi / Sharifi
   for (const r of TOP_ROWS) {
     const y = Y(r.top);
     page.drawText(r.label, { x: LEFT + 4, y: y + 2.5, size: LABEL_SIZE, font, color: BLACK });

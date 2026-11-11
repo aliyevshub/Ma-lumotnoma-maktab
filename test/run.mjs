@@ -46,7 +46,29 @@ const tgServer = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ ok: true, result }));
 });
 
-// ---------- Yordamçilar ----------
+// ---------- Soxta Claude API (imlo tuzatish uchun) ----------
+const AI_PORT = 8789;
+const aiCalls = [];
+let aiMode = "ok"; // ok | error
+const aiServer = http.createServer(async (req, res) => {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  const body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+  aiCalls.push({ url: req.url, headers: req.headers, body });
+  res.setHeader("content-type", "application/json");
+  if (aiMode === "error") { res.statusCode = 500; res.end(JSON.stringify({ type: "error", error: { type: "api_error", message: "test" } })); return; }
+  const input = JSON.parse(body.messages[0].content.split("\n").slice(1).join("\n"));
+  const out = { ...input };
+  if (out.fel_atvor) out.fel_atvor = out.fel_atvor.replace("mehrbon", "mehribon");
+  res.end(JSON.stringify({
+    id: "msg_test", type: "message", role: "assistant", model: body.model,
+    content: [{ type: "text", text: JSON.stringify(out) }],
+    stop_reason: "end_turn", stop_sequence: null,
+    usage: { input_tokens: 10, output_tokens: 10 },
+  }));
+});
+
+// ---------- Yordamchilar ----------
 let updateId = 1;
 async function post(update, secret = SECRET) {
   const r = await fetch(`http://127.0.0.1:${WK_PORT}/webhook`, {
@@ -98,8 +120,10 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 execSync(`npx wrangler d1 migrations apply malumotnoma --local --persist-to ${STATE}`, { stdio: "ignore", env: { ...process.env, CI: "1" } });
 await new Promise((r) => tgServer.listen(TG_PORT, r));
+await new Promise((r) => aiServer.listen(AI_PORT, r));
 const vars = {
   TG_API_BASE: `http://127.0.0.1:${TG_PORT}`, BOT_TOKEN: "TEST", ADMIN_ID: String(ADMIN),
+  ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: `http://127.0.0.1:${AI_PORT}`,
   CARD_NUMBER: "8600 1234 5678 9012", CARD_OWNER: "ALIYEV A.", WEBHOOK_SECRET: SECRET,
 };
 const wk = spawn("npx", ["wrangler", "dev", "--local", "--port", String(WK_PORT), "--persist-to", STATE,
@@ -109,10 +133,10 @@ wk.stdout.on("data", (d) => (log += d));
 wk.stderr.on("data", (d) => (log += d));
 
 const ANSWERS = [
-  "Aliyeva", "Şahzoda", "Bahodirovna", "15.03.2018", "özbek", "Aliyev Bahodir Ğayratoviç",
-  "12-maktab, öqituvçi", "Aliyeva Gulçehra", "uy bekasi", "3", "2", "yaxşi", "matematika, rasm",
-  "şaxmat", "kitob öqiydi, rasm çizadi", "mehribon", "şifokor böliş", "+998 90 123 45 67",
-  "Navbahor MFY, Mustaqillik köçasi, 15-uy",
+  "aliyeva", "Shahzoda", "Bahodirovna", "15.03.2018", "ozbek", "Aliyev Bahodir G'ayratovich",
+  "12-maktab, o'qituvchi", "Aliyeva Gulchehra", "uy bekasi", "3", "2", "yaxshi", "matematika, rasm",
+  "shaxmat", "kitob o'qiydi, rasm chizadi", "mehrbon", "shifokor bo'lish", "+998 90 123 45 67",
+  "Navbahor MFY, Mustaqillik ko'chasi, 15-uy",
 ];
 
 try {
@@ -120,10 +144,10 @@ try {
   console.log("Sinov boshlandi:");
 
   await step("webhook maxfiy kaliti tekshiriladi", async () => {
-    assert.equal(await post({}, "notogri"), 403);
+    assert.equal(await post({}, "noto'g'ri"), 403);
   });
 
-  await step("/setup — webhook'ni bot özi ulaydi", async () => {
+  await step("/setup — webhook'ni bot o'zi ulaydi", async () => {
     assert.equal((await fetch(`http://127.0.0.1:${WK_PORT}/setup?key=xato`)).status, 403);
     const start = calls.length;
     const r = await fetch(`http://127.0.0.1:${WK_PORT}/setup?key=${SECRET}`);
@@ -132,35 +156,35 @@ try {
     assert.equal(wh.url, `http://127.0.0.1:${WK_PORT}/webhook`);
     assert.equal(wh.secret_token, SECRET);
     const desc = calls.slice(start).find((c) => c.method === "setMyDescription");
-    assert.ok(desc.description.includes("2A sinfi") && desc.description.includes("Start"));
+    assert.ok(!desc.description.includes("2A") && desc.description.includes("Start"));
     assert.ok(calls.slice(start).some((c) => c.method === "setMyShortDescription"));
   });
 
-  await step("/start — salomlaşiş va 1-savol", async () => {
+  await step("/start — salomlashish va 1-savol", async () => {
     const c = await say(USER, "/start");
-    has(c, "2A sinfi"); has(c, "Savol 1/20"); has(c, "Familiyasi");
+    has(c, "Bu bot Ma'lumotnoma tayyorlaydi"); assert.ok(!texts(c).includes("2A")); has(c, "Savol 1/20"); has(c, "Familiyasi");
   });
 
   await step("matn javoblari ketma-ket", async () => {
     for (let i = 0; i < 3; i++) await say(USER, ANSWERS[i]);
   });
 
-  await step("notögri sana rad etiladi", async () => {
-    has(await say(USER, "31.02.2018"), "Sana notögri");
-    has(await say(USER, "kecha"), "Sana notögri");
-    has(await say(USER, "15.03.2099"), "Sana notögri");
+  await step("noto'g'ri sana rad etiladi", async () => {
+    has(await say(USER, "31.02.2018"), "Sana noto'g'ri");
+    has(await say(USER, "kecha"), "Sana noto'g'ri");
+    has(await say(USER, "15.03.2099"), "Sana noto'g'ri");
     has(await say(USER, "15/3/2018"), "Millati");
   });
 
-  await step("rasm kutilmagan joyda matn sörash", async () => {
+  await step("rasm kutilmagan joyda matn so'rash", async () => {
     has(await photo(USER, "x"), "matn bilan");
   });
 
   for (let i = 4; i < 17; i++) await say(USER, ANSWERS[i]);
 
-  await step("notögri telefon rad etiladi", async () => {
-    has(await say(USER, "12345"), "Telefon raqami notögri");
-    has(await say(USER, "90 123 45 67"), "Yaşaş manzili");
+  await step("noto'g'ri telefon rad etiladi", async () => {
+    has(await say(USER, "12345"), "Telefon raqami noto'g'ri");
+    has(await say(USER, "90 123 45 67"), "Yashash manzili");
   });
 
   await step("juda uzun javob rad etiladi", async () => {
@@ -168,52 +192,63 @@ try {
   });
   await say(USER, ANSWERS[18]);
 
-  await step("rasm 3x4 sörashda matn rad etiladi, foto qabul qilinadi", async () => {
-    has(await say(USER, "rasm yöq"), "rasm (foto)");
+  await step("rasm 3x4 so'rashda matn rad etiladi, foto qabul qilinadi", async () => {
+    has(await say(USER, "rasm yo'q"), "rasm (foto)");
     const c = await photo(USER, "face1");
-    has(c, "Javoblaringizni tekşiring"); has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
+    has(c, "Javoblaringizni tekshiring"); has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
     has(c, "biriktirildi");
+    // imlo tuzatish: A (qoidalar) va B (sun'iy intellekt)
+    has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: o'zbek");
+    has(c, "Fe'l atvor xususiyati: mehribon"); has(c, "avtomatik tuzatildi");
+    assert.equal(aiCalls.length, 1, "AI bir marta chaqirilishi kerak");
+    const ai = aiCalls[0];
+    assert.equal(ai.url, "/v1/messages");
+    assert.equal(ai.body.model, "claude-opus-5-5");
+    assert.equal(ai.body.fallbacks, "default");
+    assert.ok(String(ai.headers["anthropic-beta"]).includes("server-side-fallback-2026-07-01"));
+    assert.equal(ai.body.output_config.format.type, "json_schema");
+    assert.ok(!("telefon" in JSON.parse(ai.body.messages[0].content.split("\n").slice(1).join("\n"))));
     const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.text);
-    assert.deepEqual(kb, ["✏️ Tahrirlaş", "✅ Hammasi tögri"]);
+    assert.deepEqual(kb, ["✏️ Tahrirlash", "✅ Hammasi to'g'ri"]);
   });
 
-  await step("tahrirlaş: maydon tanlab özgartiriş", async () => {
+  await step("tahrirlash: maydon tanlab o'zgartirish", async () => {
     const c = await press(USER, "edit");
     assert.equal(c.find((x) => x.method === "editMessageReplyMarkup").reply_markup.inline_keyboard.length, 11);
     has(await press(USER, "e:millati"), "Millati");
-    has(await say(USER, "qozoq"), "2. Ismi: Şahzoda");
+    has(await say(USER, "qozoq"), "2. Ismi: Shahzoda");
     const c2 = await say(USER, "nimadir");
-    has(c2, "Javoblaringizni tekşiring");
+    has(c2, "Javoblaringizni tekshiring");
     has(c2, "5. Millati: qozoq");
   });
 
-  await step("tasdiqlaş → karta raqami körsatiladi", async () => {
+  await step("tasdiqlash → karta raqami ko'rsatiladi", async () => {
     const c = await press(USER, "ok");
-    has(c, "<code>8600 1234 5678 9012</code>"); has(c, "ALIYEV A."); has(c, "5 000 söm");
+    has(c, "<code>8600 1234 5678 9012</code>"); has(c, "ALIYEV A."); has(c, "5 000 so'm");
     const m = c.find((x) => x.text?.includes("<code>"));
     assert.equal(m.parse_mode, "HTML");
     assert.equal(m.reply_markup.inline_keyboard[0][0].copy_text.text, "8600123456789012");
   });
 
-  await step("çek ornida matn — çek söraladi", async () => {
-    has(await say(USER, "tölladim"), "çekini rasm");
+  await step("chek ornida matn — chek so'raladi", async () => {
+    has(await say(USER, "to'lladim"), "chekini rasm");
   });
 
   let paymentId;
-  await step("çek → adminga tugmalar bilan boradi", async () => {
+  await step("chek → adminga tugmalar bilan boradi", async () => {
     const c = await photo(USER, "receipt1");
-    has(c, "Çek qabul qilindi");
+    has(c, "Chek qabul qilindi");
     const toAdmin = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
-    assert.ok(toAdmin, "admin çekni olmadi");
+    assert.ok(toAdmin, "admin chekni olmadi");
     assert.equal(toAdmin.photo, "receipt1");
-    has([toAdmin], "Aliyeva Şahzoda");
+    has([toAdmin], "Aliyeva Shahzoda");
     const btns = toAdmin.reply_markup.inline_keyboard[0];
-    assert.deepEqual(btns.map((b) => b.text), ["✅ Tasdiqlaş", "❌ Rad etiş"]);
+    assert.deepEqual(btns.map((b) => b.text), ["✅ Tasdiqlash", "❌ Rad etish"]);
     paymentId = btns[0].callback_data.split(":")[1];
   });
 
-  await step("tekşiruv paytida foydalanuvçiga kutiş xabari", async () => {
-    has(await say(USER, "qaçon?"), "tekşirilmoqda");
+  await step("tekshiruv paytida foydalanuvchiga kutish xabari", async () => {
+    has(await say(USER, "qachon?"), "tekshirilmoqda");
   });
 
   await step("begona odam admin tugmasini bosa olmaydi", async () => {
@@ -221,36 +256,36 @@ try {
     assert.ok(!c.some((x) => x.method === "sendDocument"));
   });
 
-  await step("rad etiş → sabab → foydalanuvçiga xabar", async () => {
+  await step("rad etish → sabab → foydalanuvchiga xabar", async () => {
     has(await press(ADMIN, `rj:${paymentId}`, 555), "sababini yozing");
-    const c = await say(ADMIN, "Summa notögri");
-    has(c, "Sabab: Summa notögri");
-    assert.ok(c.some((x) => Number(x.chat_id) === USER), "foydalanuvçiga bormadi");
-    has(c, `Çek #${paymentId} rad etildi`);
+    const c = await say(ADMIN, "Summa noto'g'ri");
+    has(c, "Sabab: Summa noto'g'ri");
+    assert.ok(c.some((x) => Number(x.chat_id) === USER), "foydalanuvchiga bormadi");
+    has(c, `Chek #${paymentId} rad etildi`);
   });
 
-  await step("rad etilgandan keyin qayta çek", async () => {
+  await step("rad etilgandan keyin qayta chek", async () => {
     const c = await photo(USER, "receipt2");
     const toAdmin = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
     paymentId = toAdmin.reply_markup.inline_keyboard[0][0].callback_data.split(":")[1];
   });
 
-  await step("tasdiqlaş → PDF foydalanuvçiga va nusxasi adminga", async () => {
+  await step("tasdiqlash → PDF foydalanuvchiga va nusxasi adminga", async () => {
     const c = await press(ADMIN, `ap:${paymentId}`, 556);
-    has(c, "Tölov tasdiqlandi");
+    has(c, "To'lov tasdiqlandi");
     const doc = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === USER);
     assert.ok(doc?.document?.file, "PDF yuborilmadi");
-    assert.match(doc.document.name, /^Malumotnoma_Aliyeva_Şahzoda\.pdf$/);
+    assert.match(doc.document.name, /^Malumotnoma_Aliyeva_Shahzoda\.pdf$/);
     const pdf = readFileSync(doc.document.file);
     assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
     assert.ok(c.some((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN), "admin nusxa olmadi");
     const kb = JSON.stringify(c.at(-1).reply_markup);
-    assert.ok(kb.includes("Tahrirlaş (1 marta bepul)") && kb.includes("fe:1"), "bepul tahrirlaş tugmasi yöq");
+    assert.ok(kb.includes("Tahrirlash (1 marta bepul)") && kb.includes("fe:1"), "bepul tahrirlash tugmasi yo'q");
   });
 
-  await step("ikki marta tasdiqlab bölmaydi", async () => {
+  await step("ikki marta tasdiqlab bo'lmaydi", async () => {
     const c = await press(ADMIN, `ap:${paymentId}`, 556);
-    has(c, "allaqaçon");
+    has(c, "allaqachon");
   });
 
   await step("/mening — PDF qayta yuboriladi (file_id orqali)", async () => {
@@ -259,19 +294,19 @@ try {
     assert.equal(typeof d.document, "string");
   });
 
-  await step("bepul tahrirlaş: 1 marta", async () => {
+  await step("bepul tahrirlash: 1 marta", async () => {
     has(await press(USER, "fe:1"), "Qaysi javobni");
     await press(USER, "e:orzular");
-    await say(USER, "öqituvçi böliş");
+    await say(USER, "o'qituvchi bo'lish");
     const c = await press(USER, "ok");
-    has(c, "Özgarişlar saqlandi");
+    has(c, "O'zgarishlar saqlandi");
     assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file));
-    has(await press(USER, "fe:1"), "Bepul tahrirlaş işlatilgan");
+    has(await press(USER, "fe:1"), "Bepul tahrirlash ishlatilgan");
   });
 
   await step("/holat — statistika", async () => {
     const c = await say(ADMIN, "/holat");
-    has(c, "Tayyor (tölangan): 1"); has(c, "Jami tuşum: 5 000 söm");
+    has(c, "Tayyor (to'langan): 1"); has(c, "Jami tushum: 5 000 so'm");
   });
 
   await step("/export — Excel fayl", async () => {
@@ -282,7 +317,7 @@ try {
     writeFileSync(`${OUT}/export.xlsx`, readFileSync(d.document.file));
   });
 
-  await step("/pdf 1 — admin uçun", async () => {
+  await step("/pdf 1 — admin uchun", async () => {
     const c = await say(ADMIN, "/pdf 1");
     assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file));
     has(await say(ADMIN, "/pdf 99"), "topilmadi");
@@ -291,29 +326,29 @@ try {
   await step("/yangi va /bekor", async () => {
     has(await say(USER, "/yangi"), "Savol 1/20");
     has(await say(USER, "/yangi"), "tugallanmagan");
-    has(await say(USER, "/bekor"), "öçirildi");
+    has(await say(USER, "/bekor"), "o'chirildi");
     has(await say(USER, "/mening"), "Ma'lumotnoma");
   });
 
-  await step("admin anketasi tölovsiz — PDF darhol", async () => {
+  await step("admin anketasi to'lovsiz — PDF darhol", async () => {
     await say(ADMIN, "/start");
     for (let i = 0; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     await photo(ADMIN, "face2");
     const c = await press(ADMIN, "ok");
-    assert.ok(!texts(c).includes("kartaga"), "adminga karta körsatildi");
-    has(c, "Tölov tasdiqlandi");
+    assert.ok(!texts(c).includes("kartaga"), "adminga karta ko'rsatildi");
+    has(c, "To'lov tasdiqlandi");
     const docs = c.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
-    assert.equal(docs.length, 1, "admin PDF'ni bir marta olişi kerak");
-    has(await say(ADMIN, "/holat"), "Jami tuşum: 5 000 söm");
+    assert.equal(docs.length, 1, "admin PDF'ni bir marta olishi kerak");
+    has(await say(ADMIN, "/holat"), "Jami tushum: 5 000 so'm");
   });
 
   const USER2 = 222;
   const sentTo = (cs, id) => cs.filter((x) => Number(x.chat_id) === id && (x.text || x.caption));
 
-  await step("xabar yoziş: tugma → kimga ekani → tasdiq → yuboriladi", async () => {
-    has(await press(ADMIN, "w:1", 700), "Xabar kimga: Aliyeva Şahzoda (anketa #1)");
-    const c = await say(ADMIN, "Assalomu alaykum, tekşiruv xabari");
-    has(c, "Kimga: Aliyeva Şahzoda (anketa #1)");
+  await step("xabar yozish: tugma → kimga ekani → tasdiq → yuboriladi", async () => {
+    has(await press(ADMIN, "w:1", 700), "Xabar kimga: Aliyeva Shahzoda (anketa #1)");
+    const c = await say(ADMIN, "Assalomu alaykum, tekshiruv xabari");
+    has(c, "Kimga: Aliyeva Shahzoda (anketa #1)");
     assert.equal(sentTo(c, USER).length, 0, "tasdiqsiz yuborildi!");
     const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.callback_data);
     assert.deepEqual(kb, ["ws:1", "wc"]);
@@ -321,11 +356,11 @@ try {
     const toUser = sentTo(c2, USER);
     assert.equal(toUser.length, 1);
     assert.ok(toUser[0].text.startsWith("✉️ Admin xabari (anketa #1)"));
-    assert.ok(toUser[0].text.includes("tekşiruv xabari"));
-    has(c2, "Yuborildi: Aliyeva Şahzoda");
+    assert.ok(toUser[0].text.includes("tekshiruv xabari"));
+    has(c2, "Yuborildi: Aliyeva Shahzoda");
   });
 
-  await step("xabar yoziş: Bekor — hech narsa ketmaydi", async () => {
+  await step("xabar yozish: Bekor — hech narsa ketmaydi", async () => {
     await press(ADMIN, "w:1", 702);
     await say(ADMIN, "yuborilmasligi kerak");
     const c = await press(ADMIN, "wc", 703);
@@ -335,7 +370,7 @@ try {
     assert.equal(sentTo(c2, USER).length, 0, "bekor qilingandan keyin yuborildi!");
   });
 
-  await step("xabar yoziş: boşqa anketa tugmasi bosilsa, eski tasdiq işlamaydi", async () => {
+  await step("xabar yozish: boshqa anketa tugmasi bosilsa, eski tasdiq ishlamaydi", async () => {
     await press(ADMIN, "w:1", 704);
     await say(ADMIN, "1-anketaga xabar");
     has(await press(ADMIN, "w:3", 705), "anketa #3");
@@ -345,38 +380,57 @@ try {
     await say(ADMIN, "/bekor");
   });
 
-  await step("foydalanuvçi admin xabariga javob beradi → adminga keladi", async () => {
+  await step("foydalanuvchi admin xabariga javob beradi → adminga keladi", async () => {
     const start = calls.length;
-    await post({ message: { message_id: ++msgId, from: from(USER), chat: chat(USER), date: 0, text: "Rahmat, tuşundim",
+    await post({ message: { message_id: ++msgId, from: from(USER), chat: chat(USER), date: 0, text: "Rahmat, tushundim",
       reply_to_message: { message_id: 5, from: { id: 1, is_bot: true, first_name: "bot" }, chat: chat(USER), date: 0,
         text: "✉️ Admin xabari (anketa #1):\n\nsalom" } } });
     const c = calls.slice(start);
-    has(c, "Javob: Aliyeva Şahzoda (anketa #1)");
+    has(c, "Javob: Aliyeva Shahzoda (anketa #1)");
     assert.ok(c.some((x) => x.method === "copyMessage" && Number(x.chat_id) === ADMIN));
     has(c, "adminga yuborildi");
   });
 
-  await step("xato rad etilgan çekni «Baribir tasdiqlaş» bilan tasdiqlaş", async () => {
+  await step("xato rad etilgan chekni «Baribir tasdiqlash» bilan tasdiqlash", async () => {
     await say(USER2, "/start");
-    for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Şahzoda", "Madina"));
+    for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Shahzoda", "Madina"));
     await photo(USER2, "face3");
     await press(USER2, "ok");
     const c = await photo(USER2, "receipt9");
     const adm = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
     const rows = adm.reply_markup.inline_keyboard;
-    assert.equal(rows[1][0].text, "✉️ Foydalanuvçiga yoziş");
+    assert.equal(rows[1][0].text, "✉️ Foydalanuvchiga yozish");
     const pid = rows[0][0].callback_data.split(":")[1];
     await press(ADMIN, `rj:${pid}`, 800);
     const r = await say(ADMIN, "Pul kelmadi");
     const edit = r.find((x) => x.method === "editMessageReplyMarkup");
     assert.equal(edit.reply_markup.inline_keyboard[0][0].callback_data, `ap:${pid}`);
     const c2 = await press(ADMIN, `ap:${pid}`, 800);
-    has(c2, "Tölov tasdiqlandi");
+    has(c2, "To'lov tasdiqlandi");
     assert.ok(c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER2 && x.document?.file));
-    has(await press(ADMIN, `ap:${pid}`, 800), "allaqaçon");
+    has(await press(ADMIN, `ap:${pid}`, 800), "allaqachon");
   });
 
-  console.log(`\nHammasi ötdi: ${passed} ta tekshiruv ✅`);
+  await step("AI ishlamasa ham anketa davom etadi (faqat qoidalar)", async () => {
+    aiMode = "error";
+    const U = 333;
+    await say(U, "/start");
+    for (let i = 0; i < 19; i++) await say(U, ANSWERS[i]);
+    const c = await photo(U, "face4");
+    has(c, "Javoblaringizni tekshiring"); has(c, "1. Familiyasi: Aliyeva"); has(c, "mehrbon");
+    assert.ok(!texts(c).includes("avtomatik tuzatildi"));
+    aiMode = "ok";
+  });
+
+  await step("tahrirlangan javob AI bilan o'zgartirilmaydi", async () => {
+    const before = aiCalls.length;
+    await press(333, "edit");
+    await press(333, "e:fel_atvor");
+    has(await say(333, "  sabrli ,  mehrbon "), "sabrli, mehrbon");
+    assert.equal(aiCalls.length, before);
+  });
+
+  console.log(`\nHammasi o'tdi: ${passed} ta tekshiruv ✅`);
 } catch (e) {
   console.error("\n✗ XATO:", e.message);
   console.error("\n--- wrangler log (oxiri) ---\n" + log.slice(-3000));
@@ -384,5 +438,6 @@ try {
 } finally {
   try { process.kill(-wk.pid, "SIGTERM"); } catch {}
   tgServer.close();
+  aiServer.close();
   setTimeout(() => process.exit(), 500);
 }

@@ -1,6 +1,6 @@
-// D1 bilan işlaş uçun yordamçi funksiyalar
+// D1 bilan ishlash uchun yordamchi funksiyalar
 export async function currentForm(env, chatId) {
-  const row = await env.DB.prepare(// faol (tugallanmagan) anketa birinçi, keyin eng oxirgisi
+  const row = await env.DB.prepare(// faol (tugallanmagan) anketa birinchi, keyin eng oxirgisi
     "SELECT * FROM forms WHERE chat_id = ? ORDER BY (status <> 'done') DESC, updated_at DESC, id DESC LIMIT 1")
     .bind(chatId).first();
   return row ? hydrate(row) : null;
@@ -22,7 +22,7 @@ export async function createForm(env, chatId, username) {
   return hydrate(r);
 }
 
-// Faqat berilgan maydonlarni yangilaş
+// Faqat berilgan maydonlarni yangilash
 export async function saveForm(env, form, fields) {
   const cols = Object.keys(fields);
   const vals = cols.map((c) => (c === "answers" ? JSON.stringify(fields[c]) : fields[c]));
