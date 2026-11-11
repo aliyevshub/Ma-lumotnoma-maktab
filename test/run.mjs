@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 
 const TG_PORT = 8788, WK_PORT = 8787;
 const OUT = "test/out", STATE = `${OUT}/state`;
-const USER = 111, ADMIN = 999, SECRET = "test-secret";
+const USER = 111, ADMIN = 999, EDITOR = 777, SECRET = "test-secret";
 const FACE = readFileSync("test/face.jpg");
 
 // ---------- Soxta Telegram ----------
@@ -56,7 +56,7 @@ async function post(update, secret = SECRET) {
   });
   return r.status;
 }
-const from = (id) => ({ id, is_bot: false, first_name: id === ADMIN ? "Admin" : "Ota", username: id === ADMIN ? "admin" : "ota" });
+const from = (id) => ({ id, is_bot: false, first_name: id === ADMIN ? "Admin" : id === EDITOR ? "Muharrir" : "Ota", username: id === ADMIN ? "admin" : "ota" });
 const chat = (id) => ({ id, type: "private" });
 async function say(id, text) {
   const start = calls.length;
@@ -101,7 +101,7 @@ mkdirSync(OUT, { recursive: true });
 execSync(`npx wrangler d1 migrations apply malumotnoma --local --persist-to ${STATE}`, { stdio: "ignore", env: { ...process.env, CI: "1" } });
 await new Promise((r) => tgServer.listen(TG_PORT, r));
 const vars = {
-  TG_API_BASE: `http://127.0.0.1:${TG_PORT}`, BOT_TOKEN: "TEST", ADMIN_ID: String(ADMIN),
+  TG_API_BASE: `http://127.0.0.1:${TG_PORT}`, BOT_TOKEN: "TEST", ADMIN_ID: String(ADMIN), EDITOR_ID: String(EDITOR),
   CARD_NUMBER: "8600 1234 5678 9012", CARD_OWNER: "ALIYEV A.", WEBHOOK_SECRET: SECRET,
 };
 const wk = spawn("npx", ["wrangler", "dev", "--local", "--test-scheduled", "--port", String(WK_PORT), "--persist-to", STATE,
@@ -140,6 +140,8 @@ try {
     assert.ok(!JSON.stringify(cmds.find((c) => !c.scope).commands).includes("stat"), "stat hammaga ko'rinmasligi kerak");
     const adminCmds = cmds.find((c) => c.scope?.chat_id === ADMIN);
     assert.ok(adminCmds && adminCmds.commands.some((x) => x.command === "stat") && adminCmds.commands.some((x) => x.command === "export"));
+    const edCmds = cmds.find((c) => c.scope?.chat_id === EDITOR);
+    assert.ok(edCmds.commands.some((x) => x.command === "tahrir") && !edCmds.commands.some((x) => x.command === "stat"));
   });
 
   await step("/start — salomlashish va 1-savol", async () => {
@@ -459,8 +461,24 @@ try {
     assert.equal(edit.reply_markup.inline_keyboard[0][0].callback_data, `ap:${pid}`);
     const c2 = await press(ADMIN, `ap:${pid}`, 800);
     has(c2, "To'lov tasdiqlandi");
-    const c3 = await press(ADMIN, `as:${asId(c2)}`, 801);
+    // qoralama muharrirga ham keldi
+    assert.ok(c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === EDITOR), "muharrirga qoralama kelmadi");
+    // muharrir tahrirlaydi va yuboradi; admin xabardor bo'ladi
+    const fid = asId(c2);
+    has(await press(EDITOR, `ae:${fid}`, 802), "qaysi bandni tuzatasiz");
+    await press(EDITOR, `af:${fid}:fanlar`, 803);
+    has(await say(EDITOR, "Matematika, ona tili"), "13. Qiziqqan fanlari: Matematika, ona tili");
+    const c3 = await press(EDITOR, `as:${fid}`, 804);
     assert.ok(c3.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER2 && x.document?.file));
+    assert.ok(c3.some((x) => Number(x.chat_id) === ADMIN && (x.text || "").includes("(muharrir)")), "admin xabardor bo'lmadi");
+    // muharrir nusxasida ✉️ yozish tugmasi yo'q, ✏️ bor
+    const edCopy = c3.find((x) => x.method === "sendDocument" && Number(x.chat_id) === EDITOR);
+    assert.ok(JSON.stringify(edCopy.reply_markup).includes("ae:") && !JSON.stringify(edCopy.reply_markup).includes('"w:'));
+    // muharrir: chek, statistika, yozish — yo'q; /tahrir — bor
+    assert.ok(!texts(await say(EDITOR, "/stat")).includes("Statistika"));
+    assert.ok(!(await press(EDITOR, `w:${fid}`, 805)).some((x) => (x.text || "").includes("Xabar kimga")));
+    assert.ok(!(await press(EDITOR, `ap:${pid}`, 806)).some((x) => (x.text || "").includes("tasdiqlandi")));
+    assert.ok((await say(EDITOR, `/tahrir ${fid}`)).some((x) => x.method === "sendDocument"));
     has(await press(ADMIN, `ap:${pid}`, 800), "allaqachon");
   });
 

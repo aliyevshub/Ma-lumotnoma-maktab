@@ -42,6 +42,13 @@ export default {
           ],
         });
       }
+      // Muharrir menyusi
+      for (const id of String(env.EDITOR_ID || "").split(",").map((x) => x.trim()).filter(Boolean)) {
+        await tg(env, "setMyCommands", {
+          scope: { type: "chat", chat_id: Number(id) },
+          commands: [...userCommands, { command: "tahrir", description: "Anketani tuzatish: /tahrir 12" }],
+        });
+      }
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
       const d1 = await tg(env, "setMyDescription", { description: T.botDescription(price) });
       const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(price) });

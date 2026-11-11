@@ -13,6 +13,10 @@ import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
   const isAdmin = (id) => adminIds(env).includes(String(id));
+  // Muharrir: faqat anketalarni tekshiradi, tahrirlaydi va yuboradi (cheklar, statistika — yo'q)
+  const editorIds = () => String(env.EDITOR_ID || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const isEditor = (id) => isAdmin(id) || editorIds().includes(String(id));
+  const reviewers = () => [...new Set([...adminIds(env), ...editorIds()])];
   const priceText = () => Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/ /g, " ");
 
   // ---------- Savol berish va xulosa ----------
@@ -79,14 +83,13 @@ export function createBot(env, fonts) {
       const fileId = await sendPdf(env, form.chat_id, bytes, pdfName(form), T.pdfCaption(displayName(form)));
       if (!fileId) throw new Error("sendDocument failed");
       await saveForm(env, form, { pdf_file_id: fileId });
-      for (const a of adminIds(env)) {
+      for (const a of reviewers()) {
         if (String(a) === String(form.chat_id)) continue;
+        const row = [{ text: T.btnAdminEdit, callback_data: `ae:${form.id}` }];
+        if (isAdmin(a)) row.push({ text: T.btnWrite, callback_data: `w:${form.id}` }); // yozish — faqat admin
         await tg(env, "sendDocument", {
           chat_id: a, document: fileId, caption: `${T.adminPdfCopy(displayName(form))} (#${form.id})`,
-          ...inlineKeyboard([[
-            { text: T.btnAdminEdit, callback_data: `ae:${form.id}` },
-            { text: T.btnWrite, callback_data: `w:${form.id}` },
-          ]]),
+          ...inlineKeyboard([row]),
         });
       }
     } catch (e) {
@@ -109,7 +112,7 @@ export function createBot(env, fonts) {
   // ---------- Admin tekshiruvi va tuzatish ----------
   // Adminga: javoblar ro'yxati + qoralama PDF + [✏️ Tahrirlash] [📤 Yuborish]
   async function sendAdminReview(form, adminChat) {
-    const targets = adminChat ? [adminChat] : adminIds(env);
+    const targets = adminChat ? [adminChat] : reviewers();
     const lines = summary(form).split("\n").slice(2).join("\n");
     // as — birinchi yuborish (tekshiruvdan keyin), ar — tuzatilgan hujjatni qayta yuborish
     const first = form.status === "checking";
@@ -208,6 +211,11 @@ export function createBot(env, fonts) {
     await deliverPdf(f, first ? T.docReady : T.correctedPdf);
     if (first && !isAdmin(f.chat_id)) await send(env, f.chat_id, T.menuDone);
     await send(env, cq.message.chat.id, f.pdf_file_id ? T.adminDelivered(displayName(f), f.id) : T.adminDeliverFailed(f.id));
+    // muharrir yuborgan bo'lsa — adminlar ham bilsin
+    if (f.pdf_file_id && !isAdmin(cq.from.id)) {
+      const by = cq.from.first_name || cq.from.username || "muharrir";
+      for (const a of adminIds(env)) await send(env, a, `${T.adminDelivered(displayName(f), f.id)} — ${by} (muharrir)`);
+    }
   }
 
   // Admin uchun to'lov yo'q — PDF darhol
@@ -307,7 +315,7 @@ export function createBot(env, fonts) {
   async function adminCommand(msg, cmd, arg) {
     const chatId = msg.chat.id;
     if (cmd === "/stat") {
-      const admins = adminIds(env).map(Number);
+      const admins = reviewers().map(Number); // admin va muharrirlar hisobga olinmaydi
       const notAdmin = admins.length ? `chat_id NOT IN (${admins.map(() => "?").join(",")})` : "1=1";
       // kunlar Toshkent vaqti bo'yicha (UTC+5)
       const u = await env.DB.prepare(
@@ -348,13 +356,6 @@ export function createBot(env, fonts) {
       } catch (e) {
         await send(env, chatId, `⚠️ ${e?.message || e}`);
       }
-      return true;
-    }
-    if (cmd === "/tahrir") {
-      const f = /^\d+$/.test(arg.trim()) ? await formById(env, Number(arg)) : null;
-      if (!arg.trim()) { await send(env, chatId, T.adminTahrirUsage); return true; }
-      if (!f || !f.paid) { await send(env, chatId, T.adminNotFound); return true; }
-      await sendAdminReview(f, chatId);
       return true;
     }
     if (cmd === "/admin") { await send(env, chatId, T.adminHelp); return true; }
@@ -455,8 +456,17 @@ export function createBot(env, fonts) {
     const [rawCmd, ...rest] = text.startsWith("/") ? text.split(/\s+/) : [""];
     const cmd = rawCmd.split("@")[0].toLowerCase();
 
-    if (isAdmin(msg.from?.id)) {
+    if (isEditor(msg.from?.id)) {
       if (await onAdminEditInput(msg)) return;
+      if (cmd === "/tahrir") {
+        const arg = rest.join(" ").trim();
+        const f = /^\d+$/.test(arg) ? await formById(env, Number(arg)) : null;
+        if (!arg) return send(env, chatId, T.adminTahrirUsage);
+        if (!f || !f.paid) return send(env, chatId, T.adminNotFound);
+        return sendAdminReview(f, chatId);
+      }
+    }
+    if (isAdmin(msg.from?.id)) {
       if (await onAdminWriteText(msg)) return;
       if (await provider(env).onAdminText?.(env, msg)) return;
       if (cmd && (await adminCommand(msg, cmd, rest.join(" ")))) return;
@@ -519,7 +529,7 @@ export function createBot(env, fonts) {
     }
 
     if (/^(ae|as|ar):\d+$/.test(data) || /^af:\d+:\w+$/.test(data)) {
-      if (!isAdmin(cq.from.id)) return done();
+      if (!isEditor(cq.from.id)) return done();
       const [kind, id, key] = data.split(":");
       if (kind === "ae") return adminEditChoose(cq, Number(id));
       if (kind === "af") return adminEditField(cq, Number(id), key);

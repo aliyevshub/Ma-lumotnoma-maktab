@@ -47,6 +47,7 @@ Maxfiy qiymatlarni kiriting. Ular kodda emas, faqat Cloudflare'da saqlanadi:
 ```bash
 npx wrangler secret put BOT_TOKEN        # BotFather bergan token
 npx wrangler secret put ADMIN_ID         # admin Telegram ID (bir nechta: 111,222)
+npx wrangler secret put EDITOR_ID        # muharrir ID (ixtiyoriy): faqat tahrirlaydi va yuboradi
 npx wrangler secret put CARD_NUMBER      # masalan: 8600 1234 5678 9012
 npx wrangler secret put CARD_OWNER       # karta egasi ismi
 npx wrangler secret put WEBHOOK_SECRET   # istalgan tasodifiy so'z
