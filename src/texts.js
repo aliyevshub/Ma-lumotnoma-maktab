@@ -41,11 +41,10 @@ export const T = {
     `Karta raqami: <code>${card}</code>\n` +
     `Karta egasi: ${owner}\n\n` +
     `📌 <b>To'lov tartibi</b>\n` +
-    `1. Payme, Click yoki bank ilovasi orqali ko'rsatilgan karta raqamiga ${price} so'm o'tkazing.\n` +
+    `1. Payme, Click yoki bank ilovasi orqali ko'rsatilgan karta raqamiga to'lovni amalga oshiring.\n` +
     `2. To'lov chekini (skrinshot) shu yerga yuboring.\n` +
     `3. Chek tekshirilgach, Ma'lumotnoma PDF shaklida yuboriladi.\n\n` +
-    `ℹ️ <i>To'lov administrator tomonidan qo'lda tekshiriladi. Hujjat tekshiruvdan so'ng yuboriladi; ` +
-    `bu jarayon bir necha soat davom etishi mumkin.</i>`,
+    `ℹ️ <i>Hujjat to'lov tekshiruvidan so'ng yuboriladi; bu jarayon bir necha soat davom etishi mumkin.</i>`,
   btnCopyCard: "📋 Karta raqamini nusxalash",
   receiptReceived:
     "To'lov cheki qabul qilindi ✅\n" +
