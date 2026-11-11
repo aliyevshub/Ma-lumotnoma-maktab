@@ -66,6 +66,10 @@ export const T = {
     "Tekshiruv bir necha soat davom etishi mumkin.",
   needReceipt: "Iltimos, to'lov chekini rasm yoki fayl shaklida yuboring.",
   approved: "To'lov tasdiqlandi ✅ Ma'lumotnoma quyida ilova qilingan:",
+  approvedChecking: "To'lov tasdiqlandi ✅ Hujjat tekshirilmoqda va tez orada yuboriladi.",
+  waitCheck: "Hujjatingiz tekshirilmoqda va tez orada yuboriladi.",
+  docReady: "Ma'lumotnoma tayyor ✅ Hujjat quyida ilova qilingan:",
+  correctedPdf: "Ma'lumotnomangiz tuzatildi ✅ Yangilangan hujjat:",
   rejected: (reason) =>
     `To'lov tasdiqlanmadi ❌\nSabab: ${reason}\n\nIltimos, to'g'ri to'lov chekini qayta yuboring.`,
   pdfCaption: (name) => `Ma'lumotnoma — ${name}`,
@@ -112,10 +116,11 @@ export const T = {
     `To'ldirilmoqda: ${s.filling}\n` +
     `To'lov kutilmoqda: ${s.payment}\n` +
     `Chek tekshiruvda: ${s.pending}\n` +
+    `Admin tekshiruvida: ${s.checking}\n` +
     `Tayyor (to'langan): ${s.done}\n\n` +
     `💰 <b>Jami tushum:</b> ${s.sum} so'm`,
   adminHelp:
-    "Admin buyruqlari:\n/stat — statistika\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i",
+    "Admin buyruqlari:\n/stat — statistika\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i\n/tahrir 12 — 12-raqamli anketani tuzatish va qayta yuborish",
   // Admin → foydalanuvchi xabarlari
   btnWrite: "✉️ Foydalanuvchiga yozish",
   btnApproveAnyway: "✅ Baribir tasdiqlash",
@@ -135,6 +140,22 @@ export const T = {
   userReplyToAdmin: (name, formId, who) => `💬 Javob: ${name} (anketa #${formId})\n${who}`,
   userReplySent: "Javobingiz administratorga yuborildi ✅",
   adminAlreadyPaid: "Bu anketa allaqachon tasdiqlangan.",
+  // Admin tekshiruvi va tuzatish
+  adminReviewTitle: (name, id) => `🔎 Tekshirish: ${name} (anketa #${id})`,
+  adminDraftCaption: (name, id) => `📝 Qoralama: ${name} (#${id})\nXato bo'lsa — ✏️ Tahrirlash, hammasi to'g'ri bo'lsa — 📤 Yuborish.`,
+  btnAdminEdit: "✏️ Tahrirlash",
+  btnDeliver: "📤 Foydalanuvchiga yuborish",
+  btnRedeliver: "📤 Qayta yuborish",
+  adminEditChoose: (name, id) => `✏️ ${name} (anketa #${id}) — qaysi bandni tuzatasiz?`,
+  adminEditAsk: (name, id, label, cur) =>
+    `✏️ ${name} (anketa #${id})\n${label}\n\nHozirgi: ${cur}\n\nYangi qiymatni yozing (bekor qilish: /bekor):`,
+  adminEditAskPhoto: (name, id) => `✏️ ${name} (anketa #${id})\nYangi 3x4 rasmni yuboring (bekor qilish: /bekor):`,
+  adminEditNeedPhoto: "Iltimos, rasm (foto) yuboring.",
+  adminEditSaved: "✅ Saqlandi. Yangilangan qoralama:",
+  adminEditCancelled: "Tahrirlash bekor qilindi.",
+  adminDelivered: (name, id) => `✅ Yuborildi: ${name} (anketa #${id})`,
+  adminDeliverFailed: (id) => `⚠️ Anketa #${id}: hujjat yuborilmadi.`,
+  adminTahrirUsage: "Foydalanish: /tahrir 12 (anketa raqami PDF nusxasi izohida yozilgan).",
   adminNoData: "Hali tayyor anketa yo'q.",
   adminNotFound: "Bunday tayyor anketa topilmadi.",
 };

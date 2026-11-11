@@ -24,10 +24,11 @@ export function inlineKeyboard(rows) {
 }
 
 // PDF (Uint8Array) ni hujjat sifatida yuborish; Telegram file_id qaytaradi
-export async function sendPdf(env, chatId, bytes, filename, caption) {
+export async function sendPdf(env, chatId, bytes, filename, caption, replyMarkup) {
   const form = new FormData();
   form.append("chat_id", String(chatId));
   if (caption) form.append("caption", caption);
+  if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup));
   form.append("document", new Blob([bytes], { type: "application/pdf" }), filename);
   const res = await fetch(`${base(env)}/bot${env.BOT_TOKEN}/sendDocument`, {
     method: "POST",

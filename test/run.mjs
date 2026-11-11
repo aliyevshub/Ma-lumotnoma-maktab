@@ -75,6 +75,8 @@ async function press(id, data, messageId = 1) {
     message: { message_id: messageId, chat: chat(id), date: 0 } } });
   return calls.slice(start);
 }
+// qoralama ostidagi 📤 tugmasidan anketa raqami
+const asId = (cs) => JSON.stringify(cs).match(/as:(\d+)/)[1];
 const texts = (cs) => cs.filter((c) => c.text || c.caption).map((c) => c.text || c.caption).join("\n---\n");
 const has = (cs, s) => assert.ok(texts(cs).includes(s), `kutilgan: "${s}"\nkeldi:\n${texts(cs)}`);
 let passed = 0;
@@ -255,16 +257,54 @@ try {
     paymentId = toAdmin.reply_markup.inline_keyboard[0][0].callback_data.split(":")[1];
   });
 
-  await step("tasdiqlash → PDF foydalanuvchiga va nusxasi adminga", async () => {
+  await step("tasdiqlash → PDF darhol emas, avval admin tekshiruviga keladi", async () => {
     const c = await press(ADMIN, `ap:${paymentId}`, 556);
-    has(c, "To'lov tasdiqlandi");
+    has(c, "Hujjat tekshirilmoqda");
+    assert.ok(!c.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER), "tekshiruvsiz PDF ketdi!");
+    has(c, "Tekshirish: Aliyeva Shahzoda (anketa #1)");
+    const draft = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
+    assert.ok(draft?.document?.file, "adminga qoralama kelmadi");
+    const kb = JSON.parse(draft.reply_markup).inline_keyboard[0].map((b) => b.callback_data);
+    assert.deepEqual(kb, ["ae:1", "as:1"]);
+  });
+
+  await step("oddiy foydalanuvchi admin tugmalarini bosa olmaydi", async () => {
+    for (const d of ["as:1", "ae:1", "af:1:ism", "ar:1"]) {
+      const c = await press(USER, d);
+      assert.ok(!c.some((x) => x.method === "sendDocument" || (x.text || "").includes("tuzatasiz")), d);
+    }
+  });
+
+  await step("tekshiruv paytida foydalanuvchiga PDF berilmaydi", async () => {
+    const c = await say(USER, "/mening");
+    has(c, "tekshirilmoqda");
+    assert.ok(!c.some((x) => x.method === "sendDocument"));
+  });
+
+  await step("admin bandni tuzatadi → yangi qoralama", async () => {
+    has(await press(ADMIN, "ae:1", 557), "qaysi bandni tuzatasiz");
+    has(await press(ADMIN, "af:1:orzular", 558), "Hozirgi: Shifokor bo'lish");
+    const c = await say(ADMIN, "Shifokor bo'lish, ota-onasini xursand qilish");
+    has(c, "Saqlandi"); has(c, "17. Kelajakdagi orzulari: Shifokor bo'lish, ota-onasini xursand qilish");
+    assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file), "yangi qoralama kelmadi");
+  });
+
+  await step("📤 Yuborish → foydalanuvchiga tayyor PDF, nusxasi adminga", async () => {
+    const c = await press(ADMIN, "as:1", 559);
+    has(c, "Ma'lumotnoma tayyor");
     const doc = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === USER);
     assert.ok(doc?.document?.file, "PDF yuborilmadi");
     assert.match(doc.document.name, /^Malumotnoma_Aliyeva_Shahzoda\.pdf$/);
-    const pdf = readFileSync(doc.document.file);
-    assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
-    assert.ok(c.some((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN), "admin nusxa olmadi");
-    assert.ok(!JSON.stringify(c).includes("fe:"), "bepul tahrirlash tugmasi chiqmasligi kerak");
+    assert.equal(readFileSync(doc.document.file).subarray(0, 5).toString(), "%PDF-");
+    const txt = execSync(`pdftotext "${doc.document.file}" -`).toString();
+    assert.ok(txt.includes("xursand qilish"), "admin tuzatishi PDF'ga tushmadi");
+    const copy = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
+    assert.ok(copy, "admin nusxa olmadi");
+    assert.ok(JSON.stringify(copy.reply_markup).includes("ae:1"));
+    has(c, "Yuborildi: Aliyeva Shahzoda");
+    // ikki marta bosilsa — qayta yuborilmaydi
+    const c2 = await press(ADMIN, "as:1", 559);
+    assert.ok(!c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER));
   });
 
   await step("ikki marta tasdiqlab bo'lmaydi", async () => {
@@ -283,6 +323,26 @@ try {
     assert.ok(JSON.stringify(c).includes("o'zgartirish kiritish imkoni mavjud emas"));
     assert.ok(!c.some((x) => x.method === "sendDocument" || (x.text || "").includes("bandni tanlang")));
     assert.ok(!JSON.stringify(await say(USER, "/mening")).includes("fe:"));
+  });
+
+  await step("yuborilgan hujjatni tuzatish: /tahrir → tahrir → 📤 Qayta yuborish", async () => {
+    has(await say(ADMIN, "/tahrir"), "Foydalanish");
+    has(await say(ADMIN, "/tahrir 99"), "topilmadi");
+    const c = await say(ADMIN, "/tahrir 1");
+    const draft = c.find((x) => x.method === "sendDocument");
+    assert.ok(JSON.stringify(draft.reply_markup).includes("Qayta yuborish") && JSON.stringify(draft.reply_markup).includes("ar:1"));
+    await press(ADMIN, "af:1:manzil", 560);
+    has(await say(ADMIN, "/bekor"), "bekor qilindi");
+    await press(ADMIN, "af:1:manzil", 561);
+    await say(ADMIN, "Navbahor MFY, Mustaqillik ko'chasi, 21-uy");
+    const c2 = await press(ADMIN, "ar:1", 562);
+    has(c2, "tuzatildi");
+    const doc = c2.find((x) => x.method === "sendDocument" && Number(x.chat_id) === USER);
+    assert.ok(execSync(`pdftotext "${doc.document.file}" -`).toString().includes("21-uy"));
+    // /mening endi yangi variantni beradi
+    const m = await say(USER, "/mening");
+    const resent = c2.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN).at(-1).document;
+    assert.equal(m.find((x) => x.method === "sendDocument").document, resent);
   });
 
   await step("/stat — statistika (faqat admin)", async () => {
@@ -316,17 +376,20 @@ try {
     has(await say(USER, "/mening"), "Ma'lumotnoma");
   });
 
-  await step("admin anketasi to'lovsiz — PDF darhol", async () => {
+  await step("admin anketasi to'lovsiz — tekshiruvdan keyin PDF", async () => {
     await say(ADMIN, "/start");
     await press(ADMIN, "ab:latin");
     for (let i = 0; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     await photo(ADMIN, "face2");
     const c = await press(ADMIN, "ok");
     assert.ok(!texts(c).includes("karta raqamiga"), "adminga karta ko'rsatildi");
-    has(c, "To'lov tasdiqlandi");
-    const docs = c.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
+    has(c, "Tekshirish:");
+    const st = await say(ADMIN, "/stat");
+    has(st, "<b>Jami tushum:</b> 5 000 so'm"); has(st, "Admin tekshiruvida: 1");
+    const c2 = await press(ADMIN, `as:${asId(c)}`, 700);
+    has(c2, "Ma'lumotnoma tayyor");
+    const docs = c2.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
     assert.equal(docs.length, 1, "admin PDF'ni bir marta olishi kerak");
-    has(await say(ADMIN, "/stat"), "<b>Jami tushum:</b> 5 000 so'm");
   });
 
   const USER2 = 222;
@@ -395,7 +458,8 @@ try {
     assert.equal(edit.reply_markup.inline_keyboard[0][0].callback_data, `ap:${pid}`);
     const c2 = await press(ADMIN, `ap:${pid}`, 800);
     has(c2, "To'lov tasdiqlandi");
-    assert.ok(c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER2 && x.document?.file));
+    const c3 = await press(ADMIN, `as:${asId(c2)}`, 801);
+    assert.ok(c3.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER2 && x.document?.file));
     has(await press(ADMIN, `ap:${pid}`, 800), "allaqachon");
   });
 

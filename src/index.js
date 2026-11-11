@@ -38,6 +38,7 @@ export default {
             ...userCommands,
             { command: "stat", description: "Statistika (admin)" },
             { command: "export", description: "Excel ro'yxat (admin)" },
+            { command: "tahrir", description: "Anketani tuzatish: /tahrir 12 (admin)" },
           ],
         });
       }

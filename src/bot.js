@@ -83,7 +83,10 @@ export function createBot(env, fonts) {
         if (String(a) === String(form.chat_id)) continue;
         await tg(env, "sendDocument", {
           chat_id: a, document: fileId, caption: `${T.adminPdfCopy(displayName(form))} (#${form.id})`,
-          ...inlineKeyboard([[{ text: T.btnWrite, callback_data: `w:${form.id}` }]]),
+          ...inlineKeyboard([[
+            { text: T.btnAdminEdit, callback_data: `ae:${form.id}` },
+            { text: T.btnWrite, callback_data: `w:${form.id}` },
+          ]]),
         });
       }
     } catch (e) {
@@ -93,13 +96,116 @@ export function createBot(env, fonts) {
     }
   }
 
-  // To'lov tasdiqlanganda (har qanday to'lov usulidan)
+  // To'lov tasdiqlanganda (har qanday to'lov usulidan): PDF darhol emas —
+  // avval admin tekshiradi ("checking"), 📤 bosilgandan keyin foydalanuvchiga ketadi
   async function onPaid(formId) {
     const form = await formById(env, formId);
     if (!form) return;
-    await saveForm(env, form, { paid: 1, status: "done", edit_key: null });
-    await deliverPdf(form, T.approved);
-    await send(env, form.chat_id, T.menuDone);
+    await saveForm(env, form, { paid: 1, status: "checking", edit_key: null });
+    if (!isAdmin(form.chat_id)) await send(env, form.chat_id, T.approvedChecking);
+    await sendAdminReview(form);
+  }
+
+  // ---------- Admin tekshiruvi va tuzatish ----------
+  // Adminga: javoblar ro'yxati + qoralama PDF + [✏️ Tahrirlash] [📤 Yuborish]
+  async function sendAdminReview(form, adminChat) {
+    const targets = adminChat ? [adminChat] : adminIds(env);
+    const lines = summary(form).split("\n").slice(2).join("\n");
+    // as — birinchi yuborish (tekshiruvdan keyin), ar — tuzatilgan hujjatni qayta yuborish
+    const first = form.status === "checking";
+    let bytes = null;
+    try { bytes = await makePdf(form); } catch (e) { console.log("qoralama PDF xatosi:", e?.message); }
+    for (const a of targets) {
+      await send(env, a, `${T.adminReviewTitle(displayName(form), form.id)}\n\n${lines}`);
+      const kb = [[
+        { text: T.btnAdminEdit, callback_data: `ae:${form.id}` },
+        first ? { text: T.btnDeliver, callback_data: `as:${form.id}` } : { text: T.btnRedeliver, callback_data: `ar:${form.id}` },
+      ]];
+      if (bytes) {
+        await sendPdf(env, a, bytes, pdfName(form), T.adminDraftCaption(displayName(form), form.id), { inline_keyboard: kb });
+      } else {
+        await send(env, a, T.adminDraftCaption(displayName(form), form.id), inlineKeyboard(kb));
+      }
+    }
+  }
+
+  async function adminEditChoose(cq, formId) {
+    const f = await formById(env, formId);
+    if (!f || !f.paid) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminNotFound, show_alert: true });
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    const rows = [];
+    QUESTIONS.forEach((q, i) => {
+      const label = (q.prompt ? q.prompt.split("\n")[0] : q.label).replace(/\s*\(.*\)$/, "");
+      const btn = { text: `${i + 1}. ${label}`.slice(0, 40), callback_data: `af:${f.id}:${q.key}` };
+      if (i % 2 === 0) rows.push([btn]); else rows[rows.length - 1].push(btn);
+    });
+    await send(env, cq.message.chat.id, T.adminEditChoose(displayName(f), f.id), inlineKeyboard(rows));
+  }
+
+  async function adminEditField(cq, formId, key) {
+    const f = await formById(env, formId);
+    const q = QUESTIONS[questionIndex(key)];
+    if (!f || !f.paid || !q) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminNotFound, show_alert: true });
+    // yangi tugma eski holatni almashtiradi (boshqa anketaga adashib yozilmasligi uchun)
+    await env.DB.prepare(
+      "INSERT OR REPLACE INTO admin_state (admin_id, payment_id, message_id, mode, form_id, draft) VALUES (?, 0, NULL, 'aedit', ?, ?)",
+    ).bind(cq.from.id, f.id, key).run();
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
+    const text = q.type === "photo" ? T.adminEditAskPhoto(displayName(f), f.id)
+      : T.adminEditAsk(displayName(f), f.id, label, f.answers[key] || "—");
+    await send(env, cq.message.chat.id, text, { reply_markup: { force_reply: true } });
+  }
+
+  // Admin yangi qiymatni yozdi (yoki rasm yubordi) — true: shu yerda qayta ishlandi
+  async function onAdminEditInput(msg) {
+    const st = await adminState(msg.from.id);
+    if (!st || st.mode !== "aedit") return false;
+    const text = (msg.text || "").trim();
+    if (text === "/bekor") {
+      await clearAdminState(msg.from.id);
+      await send(env, msg.chat.id, T.adminEditCancelled);
+      return true;
+    }
+    if (text.startsWith("/")) return false;
+    const f = await formById(env, st.form_id);
+    const q = QUESTIONS[questionIndex(st.draft)];
+    if (!f || !q) { await clearAdminState(msg.from.id); await send(env, msg.chat.id, T.adminNotFound); return true; }
+    if (q.type === "photo") {
+      const fileId = msg.photo?.length ? msg.photo[msg.photo.length - 1].file_id
+        : (msg.document && /^image\/(jpeg|png)$/.test(msg.document.mime_type || "") ? msg.document.file_id : null);
+      if (!fileId) { await send(env, msg.chat.id, T.adminEditNeedPhoto); return true; }
+      await saveForm(env, f, { photo_file_id: fileId });
+    } else {
+      if (!text) { await send(env, msg.chat.id, T.writeNeedText); return true; }
+      // admin yozganidek saqlanadi (avtomatik o'zgartirishsiz)
+      await saveForm(env, f, { answers: { ...f.answers, [q.key]: text.replace(/\s+/g, " ").slice(0, 300) } });
+    }
+    await clearAdminState(msg.from.id);
+    await send(env, msg.chat.id, T.adminEditSaved);
+    await sendAdminReview(f, msg.chat.id);
+    return true;
+  }
+
+  // 📤 — tekshirilgan (yoki tuzatilgan) hujjatni foydalanuvchiga yuborish
+  async function adminDeliver(cq, formId, resend) {
+    const f = await formById(env, formId);
+    if (!f || !f.paid) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminNotFound, show_alert: true });
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    await tg(env, "editMessageReplyMarkup", { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+    let first = false;
+    if (!resend) {
+      // birinchi yuborish — ikki marta bosilsa ham bir marta ketadi
+      const r = await env.DB.prepare("UPDATE forms SET status = 'done', updated_at = datetime('now') WHERE id = ? AND status = 'checking'").bind(f.id).run();
+      first = r.meta.changes > 0;
+      f.status = "done";
+      if (!first) return send(env, cq.message.chat.id, T.adminDelivered(displayName(f), f.id));
+    } else if (f.status === "checking") {
+      return send(env, cq.message.chat.id, T.adminNotFound);
+    }
+    await deliverPdf(f, first ? T.docReady : T.correctedPdf);
+    if (first && !isAdmin(f.chat_id)) await send(env, f.chat_id, T.menuDone);
+    await send(env, cq.message.chat.id, f.pdf_file_id ? T.adminDelivered(displayName(f), f.id) : T.adminDeliverFailed(f.id));
   }
 
   // Admin uchun to'lov yo'q — PDF darhol
@@ -172,6 +278,7 @@ export function createBot(env, fonts) {
         if (isAdmin(form.chat_id)) return adminFree(form);
         return provider(env).start(env, form);
       case "pending": return send(env, form.chat_id, T.waitAdmin);
+      case "checking": return send(env, form.chat_id, T.waitCheck);
       default: return send(env, form.chat_id, T.menuDone);
     }
   }
@@ -185,6 +292,7 @@ export function createBot(env, fonts) {
     const forms = await paidForms(env, chatId);
     if (!forms.length) return send(env, chatId, T.noPaid);
     for (const f of forms) {
+      if (f.status === "checking") { await send(env, chatId, T.waitCheck); continue; }
       if (f.pdf_file_id) {
         const r = await tg(env, "sendDocument", { chat_id: chatId, document: f.pdf_file_id, caption: T.pdfCaption(displayName(f)) });
         if (r.ok) continue;
@@ -207,9 +315,10 @@ export function createBot(env, fonts) {
          FROM users WHERE ${notAdmin}`,
       ).bind(...admins).first();
       const { results } = await env.DB.prepare("SELECT status, paid, COUNT(*) n FROM forms GROUP BY status, paid").all();
-      const s = { filling: 0, payment: 0, pending: 0, done: 0 };
+      const s = { filling: 0, payment: 0, pending: 0, checking: 0, done: 0 };
       for (const r of results) {
-        if (r.paid) s.done += r.n;
+        if (r.paid && r.status === "checking") s.checking += r.n;
+        else if (r.paid) s.done += r.n;
         else if (r.status === "filling" || r.status === "review") s.filling += r.n;
         else if (s[r.status] != null) s[r.status] += r.n;
       }
@@ -237,6 +346,13 @@ export function createBot(env, fonts) {
       } catch (e) {
         await send(env, chatId, `⚠️ ${e?.message || e}`);
       }
+      return true;
+    }
+    if (cmd === "/tahrir") {
+      const f = /^\d+$/.test(arg.trim()) ? await formById(env, Number(arg)) : null;
+      if (!arg.trim()) { await send(env, chatId, T.adminTahrirUsage); return true; }
+      if (!f || !f.paid) { await send(env, chatId, T.adminNotFound); return true; }
+      await sendAdminReview(f, chatId);
       return true;
     }
     if (cmd === "/admin") { await send(env, chatId, T.adminHelp); return true; }
@@ -338,6 +454,7 @@ export function createBot(env, fonts) {
     const cmd = rawCmd.split("@")[0].toLowerCase();
 
     if (isAdmin(msg.from?.id)) {
+      if (await onAdminEditInput(msg)) return;
       if (await onAdminWriteText(msg)) return;
       if (await provider(env).onAdminText?.(env, msg)) return;
       if (cmd && (await adminCommand(msg, cmd, rest.join(" ")))) return;
@@ -376,6 +493,7 @@ export function createBot(env, fonts) {
         if (isAdmin(msg.from?.id)) return adminFree(form);
         return provider(env).onUserMessage(env, form, msg);
       case "pending": return send(env, chatId, T.waitAdmin);
+      case "checking": return send(env, chatId, T.waitCheck);
       default: return send(env, chatId, T.menuDone);
     }
   }
@@ -396,6 +514,15 @@ export function createBot(env, fonts) {
       }
       const id = Number(data.split(":")[1]);
       return data.startsWith("ws:") ? confirmWrite(cq, id) : startWrite(cq, id);
+    }
+
+    if (/^(ae|as|ar):\d+$/.test(data) || /^af:\d+:\w+$/.test(data)) {
+      if (!isAdmin(cq.from.id)) return done();
+      const [kind, id, key] = data.split(":");
+      if (kind === "ae") return adminEditChoose(cq, Number(id));
+      if (kind === "af") return adminEditField(cq, Number(id), key);
+      await clearAdminState(cq.from.id);
+      return adminDeliver(cq, Number(id), kind === "ar");
     }
 
     if (/^(ap|rj):\d+$/.test(data)) {

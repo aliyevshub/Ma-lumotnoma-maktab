@@ -11,7 +11,7 @@ Bot matnlari oddiy lotin yozuvida (o', g', sh, ch). Anketa boshida foydalanuvchi
 2. Oxirida barcha javoblar va alohida ogohlantirish ko'rsatiladi: **✏️ Tahrirlash** / **✅ Hammasi to'g'ri**.
 3. Bot xizmat narxi va karta rekvizitlarini ko'rsatadi. Foydalanuvchi to'lab, chek rasmini yuboradi.
 4. Chek adminga keladi: **✅ Tasdiqlash** / **❌ Rad etish** / **✉️ Foydalanuvchiga yozish**. Rad etilsa, admin sababini yozadi; xato rad etilgan chekni **✅ Baribir tasdiqlash** mumkin.
-5. Tasdiqlangach, PDF foydalanuvchiga avtomatik yuboriladi, nusxasi adminga ham boradi.
+5. Tasdiqlangach, PDF darhol yuborilmaydi: adminga javoblar va qoralama PDF keladi. Admin xatolarni **✏️ Tahrirlash** orqali o'z qo'li bilan tuzatadi va **📤 Foydalanuvchiga yuborish** ni bosadi. Nusxasi adminga ham boradi.
 6. To'lovdan keyin ma'lumotlarni o'zgartirib bo'lmaydi (qayta rasmiylashtirish — `/yangi`, qayta to'lov bilan).
 7. Bot bazasidan 30 kundan eski anketalar har kuni avtomatik o'chiriladi (Telegram chatlaridagi xabarlarga tegilmaydi).
 
@@ -25,6 +25,7 @@ Bot matnlari oddiy lotin yozuvida (o', g', sh, ch). Anketa boshida foydalanuvchi
 - `/stat` — statistika (foydalanuvchilar, anketalar, tushum);
 - `/export` — Excel ro'yxat;
 - `/pdf 12` — 12-raqamli anketaning PDF'i;
+- `/tahrir 12` — yuborilgan anketani tuzatish va **📤 Qayta yuborish** (nusxa ostidagi ✏️ tugmasi ham shu ishni qiladi);
 - `/admin` — buyruqlar ro'yxati.
 
 ## O'rnatish (bir marta)
