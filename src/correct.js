@@ -1,3 +1,4 @@
+import { inAlphabet } from "./alphabet.js";
 // Javoblardagi oddiy imlo xatolarini qoidalar bilan tuzatish (bepul, har javobda darhol).
 
 // Ism-familiya kabi har so'zi bosh harf bilan yoziladigan maydonlar
@@ -35,11 +36,11 @@ function titleWord(w) {
   return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
 }
 
-function fixWords(s) {
-  // bosh harf holati saqlanadi
+function fixWords(s, alphabet) {
+  // bosh harf holati saqlanadi; yangi alifboda tuzatish ham yangi alifboda
   return s.replace(/[\p{L}']+/gu, (w) => {
     const r = WORDS[w.toLowerCase()];
-    return r ? keepCase(w, r) : w;
+    return r ? inAlphabet(keepCase(w, r), alphabet) : w;
   });
 }
 
@@ -48,9 +49,10 @@ function keepCase(orig, repl) {
   return /^\p{Lu}/u.test(orig) ? repl.charAt(0).toUpperCase() + repl.slice(1) : repl;
 }
 
-export function ruleFix(key, value) {
+export function ruleFix(key, value, alphabet) {
   let s = String(value ?? "");
-  for (const [k, v] of Object.entries(ALPHABET)) s = s.split(k).join(v);
+  // oddiy lotin tanlanganda yangi alifbo harflari o'giriladi, yangi alifboda — yo'q
+  if (alphabet !== "new") for (const [k, v] of Object.entries(ALPHABET)) s = s.split(k).join(v);
   s = fixApostrophes(s);
   s = s.replace(/\s+/g, " ").trim();
   s = s.replace(/\s+([,.;:!?])/g, "$1").replace(/([,;:])(?=\S)/g, "$1 ");
@@ -58,7 +60,7 @@ export function ruleFix(key, value) {
   if (NAME_KEYS.has(key)) {
     s = s.split(" ").map((w) => w.split("-").map(titleWord).join("-")).join(" ");
   } else {
-    s = fixWords(s);
+    s = fixWords(s, alphabet);
   }
   return s;
 }

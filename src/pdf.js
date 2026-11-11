@@ -4,6 +4,7 @@ import {
   PDFDocument, rgb, pushGraphicsState, popGraphicsState, rectangle, clip, endPath,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { inAlphabet } from "./alphabet.js";
 
 const W = 595.28, H = 841.89;
 const BLUE = rgb(0.13, 0.25, 0.62);
@@ -117,7 +118,8 @@ function isJpg(b) { return b && b[0] === 0xff && b[1] === 0xd8; }
  * @param {Record<string,string>} answers
  * @param {Uint8Array|null} photo  JPEG/PNG
  */
-export async function buildPdf(fonts, answers, photo) {
+export async function buildPdf(fonts, answers, photo, alphabet) {
+  const L = (t) => inAlphabet(t, alphabet); // yorliqlar tanlangan yozuvda
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   doc.setTitle(`Ma'lumotnoma — ${answers.familiya || ""} ${answers.ism || ""}`.trim());
@@ -163,8 +165,8 @@ export async function buildPdf(fonts, answers, photo) {
   // Familiyasi / Ismi / Sharifi
   for (const r of TOP_ROWS) {
     const y = Y(r.top);
-    page.drawText(r.label, { x: LEFT + 4, y: y + 2.5, size: LABEL_SIZE, font, color: BLACK });
-    const lx = LEFT + 4 + font.widthOfTextAtSize(r.label, LABEL_SIZE) + 4;
+    page.drawText(L(r.label), { x: LEFT + 4, y: y + 2.5, size: LABEL_SIZE, font, color: BLACK });
+    const lx = LEFT + 4 + font.widthOfTextAtSize(L(r.label), LABEL_SIZE) + 4;
     page.drawLine({ start: { x: lx, y }, end: { x: TOP_RIGHT, y }, thickness: 0.6, color: LINE });
     drawAnswer(page, font, answers[r.key], lx + 4, y, TOP_RIGHT, null);
   }
@@ -174,8 +176,8 @@ export async function buildPdf(fonts, answers, photo) {
     const y = Y(ROWS_TOP + i * ROW_STEP);
     let lx = LEFT;
     if (label) {
-      page.drawText(label, { x: LEFT, y: y + 2.5, size: LABEL_SIZE, font, color: BLACK });
-      lx = LEFT + font.widthOfTextAtSize(label, LABEL_SIZE) + 4;
+      page.drawText(L(label), { x: LEFT, y: y + 2.5, size: LABEL_SIZE, font, color: BLACK });
+      lx = LEFT + font.widthOfTextAtSize(L(label), LABEL_SIZE) + 4;
     }
     page.drawLine({ start: { x: lx, y }, end: { x: RIGHT, y }, thickness: 0.6, color: LINE });
     if (key && key !== "qaydlar") {

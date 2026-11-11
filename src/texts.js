@@ -15,6 +15,9 @@ export const T = {
     `Assalomu alaykum! Ma'lumotnomani rasmiylashtirish boshlandi.\n` +
     `Iltimos, savollarga ketma-ket javob bering.`,
   resume: "Anketani to'ldirish davom ettiriladi.",
+  chooseAlphabet: "Anketani qaysi yozuvda to'ldirasiz?",
+  btnLatin: "Lotin (o', g', sh, ch)",
+  btnNewAlphabet: "Yangi alifbo (ö, ğ, ş, ç)",
   progress: (n, total) => `Savol ${n}/${total}`,
   badDate: "Sana noto'g'ri kiritilgan. Iltimos, kun.oy.yil shaklida kiriting (masalan: 15.03.2018).",
   badPhone: "Telefon raqami noto'g'ri kiritilgan. Namuna: +998 90 123 45 67",

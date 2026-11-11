@@ -11,5 +11,5 @@ const a = {
   manzil: "Navbahor MFY, Mustaqillik ko'chasi, 15-uy",
 };
 const photo = process.argv[2] === "nophoto" ? null : readFileSync("test/face.jpg");
-writeFileSync("test/out/preview.pdf", await buildPdf(fonts, a, photo));
+writeFileSync("test/out/preview.pdf", await buildPdf(fonts, a, photo, process.argv[3] || process.argv[2]));
 console.log("ok");

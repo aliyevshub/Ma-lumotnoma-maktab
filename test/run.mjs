@@ -138,7 +138,13 @@ try {
 
   await step("/start — salomlashish va 1-savol", async () => {
     const c = await say(USER, "/start");
-    has(c, "rasmiylashtirish boshlandi"); assert.ok(!texts(c).includes("2A")); has(c, "Savol 1/20"); has(c, "Familiyasi");
+    has(c, "rasmiylashtirish boshlandi"); assert.ok(!texts(c).includes("2A"));
+    has(c, "qaysi yozuvda");
+    const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.callback_data);
+    assert.deepEqual(kb, ["ab:latin", "ab:new"]);
+    has(await say(USER, "Aliyeva"), "qaysi yozuvda"); // tanlamay yozsa — qayta so'raladi
+    const c2 = await press(USER, "ab:latin");
+    has(c2, "Savol 1/20"); has(c2, "Familiyasi");
   });
 
   await step("matn javoblari ketma-ket", async () => {
@@ -295,7 +301,7 @@ try {
   });
 
   await step("/yangi va /bekor", async () => {
-    has(await say(USER, "/yangi"), "Savol 1/20");
+    has(await say(USER, "/yangi"), "qaysi yozuvda");
     has(await say(USER, "/yangi"), "yakunlanmagan anketa mavjud");
     has(await say(USER, "/bekor"), "bekor qilindi");
     has(await say(USER, "/mening"), "Ma'lumotnoma");
@@ -303,6 +309,7 @@ try {
 
   await step("admin anketasi to'lovsiz — PDF darhol", async () => {
     await say(ADMIN, "/start");
+    await press(ADMIN, "ab:latin");
     for (let i = 0; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     await photo(ADMIN, "face2");
     const c = await press(ADMIN, "ok");
@@ -364,6 +371,7 @@ try {
 
   await step("xato rad etilgan chekni «Baribir tasdiqlash» bilan tasdiqlash", async () => {
     await say(USER2, "/start");
+    await press(USER2, "ab:latin");
     for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Shahzoda", "Madina"));
     await photo(USER2, "face3");
     await press(USER2, "ok");
@@ -385,6 +393,7 @@ try {
   await step("tahrirlangan javob ham qoidalar bilan tuzatiladi", async () => {
     const U = 444;
     await say(U, "/start");
+    await press(U, "ab:latin");
     for (let i = 0; i < 19; i++) await say(U, ANSWERS[i]);
     await photo(U, "face5");
     await press(U, "edit");
@@ -395,6 +404,7 @@ try {
   await step("javoblarni tekshirish: ma'nosiz javoblar qabul qilinmaydi", async () => {
     const U = 555;
     await say(U, "/start");
+    await press(U, "ab:latin");
     has(await say(U, "Hus1"), "faqat harflardan");
     for (let i = 0; i < 4; i++) await say(U, ANSWERS[i]);
     has(await say(U, "$3&"), "faqat harflardan");
@@ -410,6 +420,25 @@ try {
     for (let i = 12; i < 19; i++) await say(U, ANSWERS[i]);
     const c = await photo(U, "face6");
     has(c, "10. Oilada nechta farzand: 3"); has(c, "11. Oilada nechanchi farzand: 2");
+  });
+
+  await step("yangi alifbo: savollar, xulosa va PDF yorliqlari ö/ğ/ş/ç bilan", async () => {
+    has(await say(ADMIN, "/yangi"), "qaysi yozuvda");
+    has(await press(ADMIN, "ab:new"), "Familiyasi");
+    await say(ADMIN, "Aliyeva");
+    has(await say(ADMIN, "şahzoda"), "Şarifi");
+    await say(ADMIN, "Bahodirovna");
+    has(await say(ADMIN, "15.03.2018"), "Millati");
+    await say(ADMIN, "özbek");
+    has(await say(ADMIN, "Aliyev Bahodir Ğayratoviç"), "Otasining iş joyi");
+    for (let i = 6; i < 19; i++) await say(ADMIN, ANSWERS[i]);
+    const c = await photo(ADMIN, "face7");
+    has(c, "2. Ismi: Şahzoda"); has(c, "5. Millati: özbek"); has(c, "Yaşaş manzili");
+    const pdfCalls = await press(ADMIN, "ok");
+    const doc = pdfCalls.find((x) => x.method === "sendDocument" && x.document?.file);
+    const txt = execSync(`pdftotext "${doc.document.file}" -`).toString();
+    assert.ok(txt.includes("Şarifi") && txt.includes("Qaydlar uçun") && txt.includes("Böş vaqtida"), "PDF yorliqlari yangi alifboda emas");
+    assert.ok(txt.includes("Şahzoda"), "javob o'zgarib ketgan");
   });
 
   await step("PDF'dan keyin «hujjatni saqlab qo'ying» eslatmasi", async () => {

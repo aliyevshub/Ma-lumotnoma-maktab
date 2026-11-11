@@ -8,6 +8,7 @@ import { provider, adminIds } from "./payments/index.js";
 import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
 import { ruleFix } from "./correct.js";
+import { inAlphabet } from "./alphabet.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -16,17 +17,27 @@ export function createBot(env, fonts) {
   const priceText = () => Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/ /g, " ");
 
   // ---------- Savol berish va xulosa ----------
+  // Savol matni foydalanuvchi tanlagan yozuvda
+  const A = (form, text) => inAlphabet(text, form.alphabet);
+
   async function ask(form, idx) {
     const q = QUESTIONS[idx];
     const head = T.progress(idx + 1, QUESTIONS.length);
-    await send(env, form.chat_id, `${head}\n\n${q.prompt || q.label}`);
+    await send(env, form.chat_id, `${head}\n\n${A(form, q.prompt || q.label)}`);
+  }
+
+  async function askAlphabet(form) {
+    await send(env, form.chat_id, T.chooseAlphabet, inlineKeyboard([[
+      { text: T.btnLatin, callback_data: "ab:latin" },
+      { text: T.btnNewAlphabet, callback_data: "ab:new" },
+    ]]));
   }
 
   function summary(form) {
     const lines = QUESTIONS.map((q, i) => {
       const v = q.type === "photo" ? (form.photo_file_id ? T.photoAttached : "—") : (form.answers[q.key] || "—");
       const label = q.type === "photo" ? q.label : (q.prompt ? q.prompt.split("\n")[0] : q.label);
-      return `${i + 1}. ${label}: ${v}`;
+      return `${i + 1}. ${A(form, label)}: ${v}`;
     });
     return `${T.reviewTitle}\n\n${lines.join("\n")}`;
   }
@@ -40,10 +51,10 @@ export function createBot(env, fonts) {
     ]]));
   }
 
-  function editKeyboard() {
+  function editKeyboard(form) {
     const rows = [];
     QUESTIONS.forEach((q, i) => {
-      const label = (q.prompt ? q.prompt.split("\n")[0] : q.label).replace(/\s*\(.*\)$/, "");
+      const label = A(form, (q.prompt ? q.prompt.split("\n")[0] : q.label).replace(/\s*\(.*\)$/, ""));
       const btn = { text: `${i + 1}. ${label}`.slice(0, 40), callback_data: `e:${q.key}` };
       if (i % 2 === 0) rows.push([btn]); else rows[rows.length - 1].push(btn);
     });
@@ -54,7 +65,7 @@ export function createBot(env, fonts) {
   // ---------- PDF ----------
   async function makePdf(form) {
     const photo = form.photo_file_id ? await downloadFile(env, form.photo_file_id) : null;
-    return buildPdf(fonts, form.answers, photo);
+    return buildPdf(fonts, form.answers, photo, form.alphabet);
   }
 
   function pdfName(form) {
@@ -121,7 +132,7 @@ export function createBot(env, fonts) {
         value = parsePhone(text);
         if (!value) return send(env, form.chat_id, T.badPhone);
       } else {
-        const r = checkAnswer(q, ruleFix(q.key, value), form.answers);
+        const r = checkAnswer(q, ruleFix(q.key, value, form.alphabet), form.answers);
         if (r.error) return send(env, form.chat_id, T[r.error]);
         value = r.value;
       }
@@ -145,17 +156,18 @@ export function createBot(env, fonts) {
   async function startNew(chatId, from) {
     const form = await createForm(env, chatId, from?.username);
     await send(env, chatId, T.welcome(cls, priceText()));
-    await ask(form, 0);
+    await askAlphabet(form);
   }
 
   async function resume(form) {
     switch (form.status) {
       case "filling":
-        if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form.edit_key)));
+        if (!form.alphabet && form.step === 0) return askAlphabet(form);
+        if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form, form.edit_key)));
         await send(env, form.chat_id, T.resume);
         return ask(form, form.step);
       case "review":
-        if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form.edit_key)));
+        if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form, form.edit_key)));
         return showReview(form);
       case "payment":
         if (isAdmin(form.chat_id)) return adminFree(form);
@@ -165,9 +177,9 @@ export function createBot(env, fonts) {
     }
   }
 
-  function labelOf(key) {
+  function labelOf(form, key) {
     const q = QUESTIONS[questionIndex(key)];
-    return q ? (q.prompt || q.label) : key;
+    return q ? A(form, q.prompt || q.label) : key;
   }
 
   async function cmdMine(chatId) {
@@ -339,7 +351,9 @@ export function createBot(env, fonts) {
 
     if (form.edit_key) return acceptAnswer(form, QUESTIONS[questionIndex(form.edit_key)], msg);
     switch (form.status) {
-      case "filling": return acceptAnswer(form, QUESTIONS[form.step], msg);
+      case "filling":
+        if (!form.alphabet && form.step === 0) return askAlphabet(form);
+        return acceptAnswer(form, QUESTIONS[form.step], msg);
       case "review": return showReview(form);
       case "payment":
         if (isAdmin(msg.from?.id)) return adminFree(form);
@@ -381,14 +395,22 @@ export function createBot(env, fonts) {
     }
 
     const form = await currentForm(env, chatId);
+    if (data === "ab:latin" || data === "ab:new") {
+      if (!form || form.status !== "filling" || form.alphabet) return done();
+      await done();
+      await saveForm(env, form, { alphabet: data.slice(3) });
+      await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+      await send(env, chatId, `✅ ${data === "ab:new" ? T.btnNewAlphabet : T.btnLatin}`);
+      return ask(form, 0);
+    }
     if (!form || !["review", "filling"].includes(form.status)) return done();
     if (form.status === "filling" && !data.startsWith("e:")) return done();
 
     if (data === "edit") {
       await done();
       return tg(env, "editMessageReplyMarkup", {
-        chat_id: chatId, message_id: cq.message.message_id, ...editKeyboard(),
-      }).then((r) => (r.ok ? r : send(env, chatId, T.chooseEdit, editKeyboard())));
+        chat_id: chatId, message_id: cq.message.message_id, ...editKeyboard(form),
+      }).then((r) => (r.ok ? r : send(env, chatId, T.chooseEdit, editKeyboard(form))));
     }
     if (data === "back") {
       await done();
@@ -401,7 +423,7 @@ export function createBot(env, fonts) {
       if (questionIndex(key) < 0 || form.status !== "review") return done();
       await done();
       await saveForm(env, form, { edit_key: key });
-      return send(env, chatId, T.editAsk(labelOf(key)));
+      return send(env, chatId, T.editAsk(labelOf(form, key)));
     }
     if (data === "ok") {
       if (form.status !== "review") return done();
