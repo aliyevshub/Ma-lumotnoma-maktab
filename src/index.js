@@ -32,8 +32,9 @@ export default {
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
       const d1 = await tg(env, "setMyDescription", { description: T.botDescription(cls, price) });
       const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(price) });
+      const n1 = await tg(env, "setMyName", { name: T.botName });
       const me = await tg(env, "getMe");
-      return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, bot: me.result?.username || null });
+      return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, name: n1.ok ? true : n1.description || false, bot: me.result?.username || null });
     }
     if (request.method === "GET") return new Response("Ma'lumotnoma bot ishlayapti ✅");
     if (request.method !== "POST" || url.pathname !== "/webhook") return new Response("Not found", { status: 404 });

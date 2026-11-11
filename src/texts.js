@@ -7,6 +7,8 @@ export const T = {
     `Tartib: anketa savollariga javob beriladi, 3x4 rasm yuboriladi va tayyor hujjat PDF shaklida yuboriladi.\n` +
     `Xizmat narxi: ${price} so'm.\n` +
     `Boshlash uchun «Start» tugmasini bosing.`,
+  // Botning ko'rinadigan nomi (setMyName)
+  botName: "📝 Ma'lumotnoma | PDF tayyorlash",
   // Bot profilidagi qisqa yozuv (setMyShortDescription)
   botShortDescription: () => `O'quvchi Ma'lumotnomasini rasmiylashtirish xizmati. Hujjat PDF shaklida taqdim etiladi.`,
   welcome: () =>
