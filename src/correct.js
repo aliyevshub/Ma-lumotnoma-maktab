@@ -1,4 +1,4 @@
-import { inAlphabet } from "./alphabet.js";
+import { inAlphabet, toNew } from "./alphabet.js";
 // Javoblardagi oddiy imlo xatolarini qoidalar bilan tuzatish (bepul, har javobda darhol).
 
 // Ism-familiya kabi har so'zi bosh harf bilan yoziladigan maydonlar
@@ -54,6 +54,8 @@ export function ruleFix(key, value, alphabet) {
   // oddiy lotin tanlanganda yangi alifbo harflari o'giriladi, yangi alifboda — yo'q
   if (alphabet !== "new") for (const [k, v] of Object.entries(ALPHABET)) s = s.split(k).join(v);
   s = fixApostrophes(s);
+  // yangi alifbo tanlanganda oddiy harflar ham o'giriladi: sh→ş, ch→ç, o'→ö, g'→ğ
+  if (alphabet === "new") s = toNew(s);
   s = s.replace(/\s+/g, " ").trim();
   s = s.replace(/\s+([,.;:!?])/g, "$1").replace(/([,;:])(?=\S)/g, "$1 ");
   s = s.replace(/([,.;:!?])\1+/g, "$1");

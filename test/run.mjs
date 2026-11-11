@@ -429,11 +429,15 @@ try {
     has(await say(ADMIN, "şahzoda"), "Şarifi");
     await say(ADMIN, "Bahodirovna");
     has(await say(ADMIN, "15.03.2018"), "Millati");
-    await say(ADMIN, "özbek");
-    has(await say(ADMIN, "Aliyev Bahodir Ğayratoviç"), "Otasining iş joyi");
+    await say(ADMIN, "o'zbek");
+    has(await say(ADMIN, "aliyev bahodir g`ayratovich"), "Otasining iş joyi");
     for (let i = 6; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     const c = await photo(ADMIN, "face7");
+    // oddiy harflarda yozilgan javoblar ham yangi alifboga o'girildi
     has(c, "2. Ismi: Şahzoda"); has(c, "5. Millati: özbek"); has(c, "Yaşaş manzili");
+    has(c, "Aliyev Bahodir Ğayratoviç"); has(c, "Aliyeva Gulçehra"); has(c, "Mustaqillik köçasi");
+    has(c, "kitob öqiydi, rasm çizadi"); has(c, "şifokor böliş"); has(c, "şaxmat");
+    has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
     const pdfCalls = await press(ADMIN, "ok");
     const doc = pdfCalls.find((x) => x.method === "sendDocument" && x.document?.file);
     const txt = execSync(`pdftotext "${doc.document.file}" -`).toString();
