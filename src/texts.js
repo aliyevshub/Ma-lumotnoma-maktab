@@ -1,7 +1,7 @@
 // Barcha bot matnlari — oddiy lotin yozuvida (sh, ch, o', g').
 export const T = {
   // Start bosishdan oldin bot chatida ko'rinadigan matn (setMyDescription)
-  botDescription: (cls, price) =>
+  botDescription: (price) =>
     `Assalomu alaykum!\n` +
     `Ushbu bot orqali o'quvchi Ma'lumotnomasi rasmiylashtiriladi.\n` +
     `Tartib: anketa savollariga javob beriladi, 3x4 rasm yuboriladi va tayyor hujjat PDF shaklida yuboriladi.\n` +

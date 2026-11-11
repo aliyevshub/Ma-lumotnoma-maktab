@@ -19,7 +19,6 @@ database_name = "malumotnoma"
 database_id = "1a9a563e-0a3b-463d-a24d-0635aa69e6ae"
 
 [vars]
-CLASS_NAME = "2A"
 PRICE = "5000"
 PAYMENT_PROVIDER = "manual"   # keyinchalik: "payme" yoki "stars"
 # Maxfiy qiymatlar (wrangler secret put ...):

@@ -298,7 +298,7 @@ try {
   await step("/export — Excel fayl", async () => {
     const c = await say(ADMIN, "/export");
     const d = c.find((x) => x.method === "sendDocument");
-    assert.match(d.document.name, /\.xlsx$/);
+    assert.match(d.document.name, /^Malumotnoma_\d{4}-\d{2}-\d{2}\.xlsx$/); assert.equal(d.caption, "Jami: 1 ta anketa");
     assert.equal(readFileSync(d.document.file).subarray(0, 2).toString(), "PK");
     writeFileSync(`${OUT}/export.xlsx`, readFileSync(d.document.file));
   });

@@ -13,7 +13,6 @@ import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
   const isAdmin = (id) => adminIds(env).includes(String(id));
-  const cls = env.CLASS_NAME || "2A";
   const priceText = () => Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/ /g, " ");
 
   // ---------- Savol berish va xulosa ----------
@@ -155,7 +154,7 @@ export function createBot(env, fonts) {
   // ---------- Buyruqlar ----------
   async function startNew(chatId, from) {
     const form = await createForm(env, chatId, from?.username);
-    await send(env, chatId, T.welcome(cls, priceText()));
+    await send(env, chatId, T.welcome());
     await askAlphabet(form);
   }
 
@@ -223,10 +222,10 @@ export function createBot(env, fonts) {
     if (cmd === "/export") {
       const forms = await allPaidForms(env);
       if (!forms.length) { await send(env, chatId, T.adminNoData); return true; }
-      const bytes = buildXlsx(forms, cls);
+      const bytes = buildXlsx(forms);
       const date = new Date().toISOString().slice(0, 10);
-      await sendFile(env, chatId, bytes, `Malumotnoma_${cls}_${date}.xlsx`,
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", `${cls}: ${forms.length} ta anketa`);
+      await sendFile(env, chatId, bytes, `Malumotnoma_${date}.xlsx`,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", `Jami: ${forms.length} ta anketa`);
       return true;
     }
     if (cmd === "/pdf") {

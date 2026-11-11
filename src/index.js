@@ -41,9 +41,8 @@ export default {
           ],
         });
       }
-      const cls = env.CLASS_NAME || "2A";
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
-      const d1 = await tg(env, "setMyDescription", { description: T.botDescription(cls, price) });
+      const d1 = await tg(env, "setMyDescription", { description: T.botDescription(price) });
       const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(price) });
       const n1 = await tg(env, "setMyName", { name: T.botName });
       const me = await tg(env, "getMe");

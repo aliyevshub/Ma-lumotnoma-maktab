@@ -1,18 +1,19 @@
-# Ma'lumotnoma bot (2A sinf)
+# Ma'lumotnoma bot
 
 Bu Telegram bot ota-onadan anketa javoblarini oladi va qog'oz Ma'lumotnomaga o'xshash PDF tayyorlaydi. Anketa 20 ta savoldan iborat, oxirida 3x4 rasm so'raladi. PDF namunadagi kabi: ramka, sarlavha, o'ng yuqorida rasm.
 Ishlash muhiti: **Cloudflare Workers + D1**.
 
-Bot matnlari yangi lotin alifbosida yozilgan (Ş, Ç, Ö, Ğ). Foydalanuvchi javoblari o'zi yozganidek qoladi.
+Bot matnlari oddiy lotin yozuvida (o', g', sh, ch). Anketa boshida foydalanuvchi yozuvni tanlaydi: oddiy lotin yoki yangi alifbo (ö, ğ, ş, ç). Savollar, xulosa va PDF yorliqlari tanlangan yozuvda bo'ladi; yangi alifboda javoblar ham avtomatik o'giriladi.
 
 ## Qanday ishlaydi
 
-1. `/start` bosilgach, bot savollarni birma-bir beradi. Sana va telefon raqami tekshiriladi.
-2. Oxirida barcha javoblar ko'rsatiladi: **✏️ Tahrirlaş** / **✅ Hammasi tögri**.
-3. Bot karta raqamini va summani (5 000 so'm) ko'rsatadi. Foydalanuvchi pul o'tkazib, chek rasmini yuboradi.
-4. Chek adminga keladi: **✅ Tasdiqlaş** / **❌ Rad etiş**. Rad etilsa, admin sababini yozadi.
+1. `/start` → yozuvni tanlash → savollar birma-bir beriladi. Sana, telefon, ism, sonlar tekshiriladi; oddiy imlo xatolari bepul qoidalar bilan tuzatiladi.
+2. Oxirida barcha javoblar va alohida ogohlantirish ko'rsatiladi: **✏️ Tahrirlash** / **✅ Hammasi to'g'ri**.
+3. Bot xizmat narxi va karta rekvizitlarini ko'rsatadi. Foydalanuvchi to'lab, chek rasmini yuboradi.
+4. Chek adminga keladi: **✅ Tasdiqlash** / **❌ Rad etish** / **✉️ Foydalanuvchiga yozish**. Rad etilsa, admin sababini yozadi; xato rad etilgan chekni **✅ Baribir tasdiqlash** mumkin.
 5. Tasdiqlangach, PDF foydalanuvchiga avtomatik yuboriladi, nusxasi adminga ham boradi.
-6. Tasdiqdan keyin anketani **1 marta bepul tahrirlash** mumkin.
+6. To'lovdan keyin ma'lumotlarni o'zgartirib bo'lmaydi (qayta rasmiylashtirish — `/yangi`, qayta to'lov bilan).
+7. Bot bazasidan 30 kundan eski anketalar har kuni avtomatik o'chiriladi (Telegram chatlaridagi xabarlarga tegilmaydi).
 
 **Foydalanuvchi buyruqlari:**
 - `/start` — anketani boshlash yoki davom ettirish;
@@ -20,8 +21,8 @@ Bot matnlari yangi lotin alifbosida yozilgan (Ş, Ç, Ö, Ğ). Foydalanuvchi jav
 - `/yangi` — boshqa farzand uchun yangi anketa;
 - `/bekor` — tugallanmagan anketani o'chirish.
 
-**Admin buyruqlari:**
-- `/holat` — statistika;
+**Admin buyruqlari** (faqat admin menyusida ko'rinadi):
+- `/stat` — statistika (foydalanuvchilar, anketalar, tushum);
 - `/export` — Excel ro'yxat;
 - `/pdf 12` — 12-raqamli anketaning PDF'i;
 - `/admin` — buyruqlar ro'yxati.
@@ -63,7 +64,6 @@ curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<worker-manzili
 O'z Telegram ID'ingizni bilish uchun @userinfobot ga yozing.
 
 **Oddiy sozlamalar** `wrangler.toml` → `[vars]` bo'limida:
-- `CLASS_NAME` — sinf nomi;
 - `PRICE` — narx;
 - `PAYMENT_PROVIDER` — to'lov usuli.
 
