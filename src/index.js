@@ -23,12 +23,24 @@ export default {
         allowed_updates: ["message", "callback_query"],
         drop_pending_updates: true,
       });
-      await tg(env, "setMyCommands", { commands: [
+      const userCommands = [
         { command: "start", description: "Anketani boshlash yoki davom ettirish" },
         { command: "mening", description: "Tayyor Ma'lumotnomani qayta olish" },
         { command: "yangi", description: "Boshqa farzand uchun yangi anketa" },
         { command: "bekor", description: "Tugallanmagan anketani o'chirish" },
-      ] });
+      ];
+      await tg(env, "setMyCommands", { commands: userCommands });
+      // Admin menyusi — faqat admin chatida ko'rinadi
+      for (const id of String(env.ADMIN_ID || "").split(",").map((x) => x.trim()).filter(Boolean)) {
+        await tg(env, "setMyCommands", {
+          scope: { type: "chat", chat_id: Number(id) },
+          commands: [
+            ...userCommands,
+            { command: "stat", description: "Statistika (admin)" },
+            { command: "export", description: "Excel ro'yxat (admin)" },
+          ],
+        });
+      }
       const cls = env.CLASS_NAME || "2A";
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
       const d1 = await tg(env, "setMyDescription", { description: T.botDescription(cls, price) });

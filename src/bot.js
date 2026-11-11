@@ -197,7 +197,16 @@ export function createBot(env, fonts) {
   // ---------- Admin ----------
   async function adminCommand(msg, cmd, arg) {
     const chatId = msg.chat.id;
-    if (cmd === "/holat") {
+    if (cmd === "/stat") {
+      const admins = adminIds(env).map(Number);
+      const notAdmin = admins.length ? `chat_id NOT IN (${admins.map(() => "?").join(",")})` : "1=1";
+      // kunlar Toshkent vaqti bo'yicha (UTC+5)
+      const u = await env.DB.prepare(
+        `SELECT COUNT(*) total,
+           SUM(date(first_seen, '+5 hours') = date('now', '+5 hours')) today,
+           SUM(first_seen >= datetime('now', '-7 days')) week
+         FROM users WHERE ${notAdmin}`,
+      ).bind(...admins).first();
       const { results } = await env.DB.prepare("SELECT status, paid, COUNT(*) n FROM forms GROUP BY status, paid").all();
       const s = { filling: 0, payment: 0, pending: 0, done: 0 };
       for (const r of results) {
@@ -206,8 +215,9 @@ export function createBot(env, fonts) {
         else if (s[r.status] != null) s[r.status] += r.n;
       }
       const sum = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) s FROM payments WHERE status = 'approved'").first();
-      s.sum = Number(sum.s).toLocaleString("ru-RU").replace(/ /g, " ");
-      await send(env, chatId, T.adminStats(cls, s));
+      s.sum = Number(sum.s).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
+      s.users = { total: u.total || 0, today: u.today || 0, week: u.week || 0 };
+      await send(env, chatId, T.adminStats(s), { parse_mode: "HTML" });
       return true;
     }
     if (cmd === "/export") {
@@ -313,9 +323,17 @@ export function createBot(env, fonts) {
   }
 
   // ---------- Xabarlar ----------
+  // Botga kirganlar hisobi (statistika uchun): faqat ID va sana
+  async function touchUser(chatId) {
+    await env.DB.prepare(
+      "INSERT INTO users (chat_id) VALUES (?) ON CONFLICT(chat_id) DO UPDATE SET last_seen = datetime('now')",
+    ).bind(chatId).run();
+  }
+
   async function onMessage(msg) {
     if (msg.chat?.type !== "private") return;
     const chatId = msg.chat.id;
+    await touchUser(chatId);
     const text = (msg.text || "").trim();
     const [rawCmd, ...rest] = text.startsWith("/") ? text.split(/\s+/) : [""];
     const cmd = rawCmd.split("@")[0].toLowerCase();

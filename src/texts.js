@@ -102,15 +102,20 @@ export const T = {
   adminAlready: "Bu chek bo'yicha qaror allaqachon qabul qilingan.",
   adminCancelReason: "Rad etish bekor qilindi.",
   adminPdfCopy: (name) => `📄 Nusxa: ${name}`,
-  adminStats: (cls, s) =>
-    `📊 ${cls} sinfi\n\n` +
+  adminStats: (s) =>
+    `📊 <b>Statistika</b>\n\n` +
+    `👥 <b>Foydalanuvchilar</b>\n` +
+    `Jami botga kirganlar: ${s.users.total}\n` +
+    `Bugun: ${s.users.today}\n` +
+    `Oxirgi 7 kun: ${s.users.week}\n\n` +
+    `📝 <b>Anketalar</b>\n` +
     `To'ldirilmoqda: ${s.filling}\n` +
     `To'lov kutilmoqda: ${s.payment}\n` +
     `Chek tekshiruvda: ${s.pending}\n` +
     `Tayyor (to'langan): ${s.done}\n\n` +
-    `Jami tushum: ${s.sum} so'm`,
+    `💰 <b>Jami tushum:</b> ${s.sum} so'm`,
   adminHelp:
-    "Admin buyruqlari:\n/holat — statistika\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i",
+    "Admin buyruqlari:\n/stat — statistika\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i",
   // Admin → foydalanuvchi xabarlari
   btnWrite: "✉️ Foydalanuvchiga yozish",
   btnApproveAnyway: "✅ Baribir tasdiqlash",

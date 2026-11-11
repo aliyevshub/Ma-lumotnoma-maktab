@@ -134,6 +134,10 @@ try {
     const desc = calls.slice(start).find((c) => c.method === "setMyDescription");
     assert.ok(!desc.description.includes("2A") && desc.description.includes("Start"));
     assert.ok(calls.slice(start).some((c) => c.method === "setMyShortDescription"));
+    const cmds = calls.slice(start).filter((c) => c.method === "setMyCommands");
+    assert.ok(!JSON.stringify(cmds.find((c) => !c.scope).commands).includes("stat"), "stat hammaga ko'rinmasligi kerak");
+    const adminCmds = cmds.find((c) => c.scope?.chat_id === ADMIN);
+    assert.ok(adminCmds && adminCmds.commands.some((x) => x.command === "stat") && adminCmds.commands.some((x) => x.command === "export"));
   });
 
   await step("/start — salomlashish va 1-savol", async () => {
@@ -281,9 +285,14 @@ try {
     assert.ok(!JSON.stringify(await say(USER, "/mening")).includes("fe:"));
   });
 
-  await step("/holat — statistika", async () => {
-    const c = await say(ADMIN, "/holat");
-    has(c, "Tayyor (to'langan): 1"); has(c, "Jami tushum: 5 000 so'm");
+  await step("/stat — statistika (faqat admin)", async () => {
+    const c = await say(ADMIN, "/stat");
+    has(c, "Tayyor (to'langan): 1"); has(c, "<b>Jami tushum:</b> 5 000 so'm");
+    // foydalanuvchilar: USER (admin hisoblanmaydi)
+    has(c, "Jami botga kirganlar: 1"); has(c, "Bugun: 1"); has(c, "Oxirgi 7 kun: 1");
+    assert.equal(c.find((x) => x.text?.includes("Statistika")).parse_mode, "HTML");
+    // oddiy foydalanuvchiga statistika chiqmaydi
+    assert.ok(!texts(await say(USER, "/stat")).includes("Statistika"));
   });
 
   await step("/export — Excel fayl", async () => {
@@ -317,7 +326,7 @@ try {
     has(c, "To'lov tasdiqlandi");
     const docs = c.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
     assert.equal(docs.length, 1, "admin PDF'ni bir marta olishi kerak");
-    has(await say(ADMIN, "/holat"), "Jami tushum: 5 000 so'm");
+    has(await say(ADMIN, "/stat"), "<b>Jami tushum:</b> 5 000 so'm");
   });
 
   const USER2 = 222;
@@ -457,7 +466,9 @@ try {
     await new Promise((res) => setTimeout(res, 1000));
     has(await say(USER, "/mening"), "mavjud emas");
     // statistika uchun summa qoladi
-    has(await say(ADMIN, "/holat"), "Jami tushum: 10 000 so'm");
+    const st = await say(ADMIN, "/stat");
+    has(st, "<b>Jami tushum:</b> 10 000 so'm");
+    has(st, "Jami botga kirganlar: 4"); // tozalashdan keyin ham foydalanuvchilar hisobi saqlanadi
     has(await say(USER2, "/mening"), "Ma'lumotnoma");
   });
 
