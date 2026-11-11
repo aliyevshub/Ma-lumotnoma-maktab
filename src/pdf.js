@@ -6,7 +6,6 @@ import {
 import fontkit from "@pdf-lib/fontkit";
 
 const W = 595.28, H = 841.89;
-const BLUE = rgb(0.13, 0.25, 0.62);
 const INK = rgb(0.05, 0.1, 0.45);   // javoblar rangi (tuşunarli kök)
 const BLACK = rgb(0, 0, 0);
 const LINE = rgb(0.25, 0.25, 0.25);
@@ -109,6 +108,32 @@ function drawAnswer(page, font, text, x, y, right, contY) {
   page.drawText(truncate(font, r.rest, MIN_SIZE, width), { x, y: y + 2.5, size: MIN_SIZE, font, color: INK });
 }
 
+// Ramka (qog'ozdagi naqş): taşqarida ingiçka çiziq, içkarida qalin to'q kök çiziq.
+// Burçaklarda ingiçka çiziqlar kesişib biroz çiqib turadi va burçakning
+// içki tomonida kiçik ingiçka kvadratça bor.
+const FRAME = { inset: 34, thick: 2.6, thin: 0.7, gap: 2.2, over: 1.6, color: rgb(0.1, 0.14, 0.45) };
+function drawFrame(page) {
+  const { inset: m, thick, thin, gap, over, color } = FRAME;
+  const d = thick / 2 + gap + thin / 2;         // qalin va ingiçka çiziq markazlari orasi
+  const x0 = m, y0 = m, x1 = W - m, y1 = H - m; // qalin çiziq markazi
+  const line = (ax, ay, bx, by, t) => page.drawLine({ start: { x: ax, y: ay }, end: { x: bx, y: by }, thickness: t, color });
+
+  page.drawRectangle({ x: x0, y: y0, width: x1 - x0, height: y1 - y0, borderColor: color, borderWidth: thick });
+
+  // Taşqi ingiçka çiziqlar (burçakda kesişib çiqadi)
+  const ox0 = x0 - d, oy0 = y0 - d, ox1 = x1 + d, oy1 = y1 + d;
+  line(ox0 - over, oy0, ox1 + over, oy0, thin);
+  line(ox0 - over, oy1, ox1 + over, oy1, thin);
+  line(ox0, oy0 - over, ox0, oy1 + over, thin);
+  line(ox1, oy0 - over, ox1, oy1 + over, thin);
+
+  // Burçaklarning içki tomonidagi kiçik kvadratçalar
+  for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) {
+    line(cx + sx * d, cy, cx + sx * d, cy + sy * d, thin);
+    line(cx, cy + sy * d, cx + sx * d, cy + sy * d, thin);
+  }
+}
+
 function isPng(b) { return b && b[0] === 0x89 && b[1] === 0x50; }
 function isJpg(b) { return b && b[0] === 0xff && b[1] === 0xd8; }
 
@@ -127,9 +152,7 @@ export async function buildPdf(fonts, answers, photo) {
   const page = doc.addPage([W, H]);
   const Y = (top) => H - top;
 
-  // Ramka: tashqi qalin, içki ingiçka
-  page.drawRectangle({ x: 26, y: 26, width: W - 52, height: H - 52, borderColor: BLUE, borderWidth: 2.4 });
-  page.drawRectangle({ x: 32, y: 32, width: W - 64, height: H - 64, borderColor: BLUE, borderWidth: 0.7 });
+  drawFrame(page);
 
   // Sarlavha
   const title = "MA`LUMOTNOMA";
