@@ -289,6 +289,18 @@ try {
     has(await say(USER, "/mening"), "Ma'lumotnoma");
   });
 
+  await step("admin anketasi tölovsiz — PDF darhol", async () => {
+    await say(ADMIN, "/start");
+    for (let i = 0; i < 19; i++) await say(ADMIN, ANSWERS[i]);
+    await photo(ADMIN, "face2");
+    const c = await press(ADMIN, "ok");
+    assert.ok(!texts(c).includes("kartaga"), "adminga karta körsatildi");
+    has(c, "Tölov tasdiqlandi");
+    const docs = c.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
+    assert.equal(docs.length, 1, "admin PDF'ni bir marta olişi kerak");
+    has(await say(ADMIN, "/holat"), "Jami tuşum: 5 000 söm");
+  });
+
   console.log(`\nHammasi ötdi: ${passed} ta tekshiruv ✅`);
 } catch (e) {
   console.error("\n✗ XATO:", e.message);

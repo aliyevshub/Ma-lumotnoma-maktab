@@ -67,6 +67,7 @@ export function createBot(env, fonts) {
       if (!fileId) throw new Error("sendDocument failed");
       await saveForm(env, form, { pdf_file_id: fileId });
       for (const a of adminIds(env)) {
+        if (String(a) === String(form.chat_id)) continue;
         await tg(env, "sendDocument", { chat_id: a, document: fileId, caption: `${T.adminPdfCopy(displayName(form))} (#${form.id})` });
       }
     } catch (e) {
@@ -83,6 +84,14 @@ export function createBot(env, fonts) {
     await saveForm(env, form, { paid: 1, status: "done", edit_key: null });
     await deliverPdf(form, T.approved);
     await send(env, form.chat_id, T.menuDone, inlineKeyboard([[{ text: T.btnFreeEdit, callback_data: `fe:${form.id}` }]]));
+  }
+
+  // Admin uçun tölov yöq — PDF darhol
+  async function adminFree(form) {
+    await env.DB.prepare(
+      "INSERT INTO payments (form_id, chat_id, amount, provider, status, decided_at) VALUES (?, ?, 0, 'admin', 'approved', datetime('now'))",
+    ).bind(form.id, form.chat_id).run();
+    return onPaid(form.id);
   }
 
   // ---------- Javobni qabul qilish ----------
@@ -138,7 +147,9 @@ export function createBot(env, fonts) {
       case "review":
         if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form.edit_key)));
         return showReview(form);
-      case "payment": return provider(env).start(env, form);
+      case "payment":
+        if (isAdmin(form.chat_id)) return adminFree(form);
+        return provider(env).start(env, form);
       case "pending": return send(env, form.chat_id, T.waitAdmin);
       default: return send(env, form.chat_id, T.menuDone);
     }
@@ -241,7 +252,9 @@ export function createBot(env, fonts) {
     switch (form.status) {
       case "filling": return acceptAnswer(form, QUESTIONS[form.step], msg);
       case "review": return showReview(form);
-      case "payment": return provider(env).onUserMessage(env, form, msg);
+      case "payment":
+        if (isAdmin(msg.from?.id)) return adminFree(form);
+        return provider(env).onUserMessage(env, form, msg);
       case "pending": return send(env, chatId, T.waitAdmin);
       default: return send(env, chatId, T.menuDone);
     }
@@ -302,6 +315,7 @@ export function createBot(env, fonts) {
         await deliverPdf(form, T.editedPdf);
         return;
       }
+      if (isAdmin(cq.from.id)) return adminFree(form);
       await saveForm(env, form, { status: "payment", edit_key: null });
       return provider(env).start(env, form);
     }
