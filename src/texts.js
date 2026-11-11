@@ -21,6 +21,11 @@ export const T = {
   tooLong: (n) => `Javob juda uzun. Iltimos, ${n} belgidan oshirmang.`,
   reviewTitle: "Kiritilgan ma'lumotlarni tekshiring:",
   photoAttached: "biriktirilgan ✅",
+  reviewWarning:
+    "⚠️ Diqqat! Iltimos, kiritilgan ma'lumotlarning to'g'riligini sinchkovlik bilan tekshiring. " +
+    "To'lov amalga oshirilgach, hujjat ushbu ma'lumotlar asosida rasmiylashtiriladi va keyinchalik " +
+    "ularga o'zgartirish kiritish imkoni bo'lmaydi. Ma'lumotlarni o'zgartirish yoki hujjatni qayta " +
+    "rasmiylashtirish uchun xizmat haqi qayta to'lanadi.",
   btnEdit: "✏️ Tahrirlash",
   btnConfirm: "✅ Hammasi to'g'ri",
   btnBack: "⬅️ Orqaga",
@@ -54,8 +59,7 @@ export const T = {
 
   menuDone:
     "Ma'lumotnoma rasmiylashtirildi.\n/mening — hujjatni qayta olish\n/yangi — boshqa farzand uchun yangi anketa",
-  btnFreeEdit: "✏️ Tahrirlash (1 marta bepul)",
-  freeEditUsed: "Bepul tahrirlash imkoniyatidan foydalanilgan.",
+  editNotAvailable: "Rasmiylashtirilgan hujjatga o'zgartirish kiritish imkoni mavjud emas. Qayta rasmiylashtirish uchun /yangi buyrug'idan foydalaning.",
   editedPdf: "O'zgartirishlar saqlandi ✅ Yangilangan Ma'lumotnoma:",
   noPaid: "Sizda rasmiylashtirilgan Ma'lumotnoma mavjud emas. Boshlash uchun /start buyrug'ini yuboring.",
   newConfirm: "Yangi anketa boshlandi. Avvalgi Ma'lumotnomalar /mening bo'limida saqlanadi.",

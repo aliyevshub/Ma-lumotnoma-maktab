@@ -25,14 +25,16 @@ export function createBot(env, fonts) {
   function summary(form) {
     const lines = QUESTIONS.map((q, i) => {
       const v = q.type === "photo" ? (form.photo_file_id ? T.photoAttached : "—") : (form.answers[q.key] || "—");
-      const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
+      const label = q.type === "photo" ? q.label : (q.prompt ? q.prompt.split("\n")[0] : q.label);
       return `${i + 1}. ${label}: ${v}`;
     });
     return `${T.reviewTitle}\n\n${lines.join("\n")}`;
   }
 
+  // Xulosa, so'ng alohida ogohlantirish — tugmalar ogohlantirish ostida
   async function showReview(form) {
-    await send(env, form.chat_id, summary(form), inlineKeyboard([[
+    await send(env, form.chat_id, summary(form));
+    await send(env, form.chat_id, T.reviewWarning, inlineKeyboard([[
       { text: T.btnEdit, callback_data: "edit" },
       { text: T.btnConfirm, callback_data: "ok" },
     ]]));
@@ -87,7 +89,7 @@ export function createBot(env, fonts) {
     if (!form) return;
     await saveForm(env, form, { paid: 1, status: "done", edit_key: null });
     await deliverPdf(form, T.approved);
-    await send(env, form.chat_id, T.menuDone, inlineKeyboard([[{ text: T.btnFreeEdit, callback_data: `fe:${form.id}` }]]));
+    await send(env, form.chat_id, T.menuDone);
   }
 
   // Admin uchun to'lov yo'q — PDF darhol
@@ -170,13 +172,11 @@ export function createBot(env, fonts) {
     const forms = await paidForms(env, chatId);
     if (!forms.length) return send(env, chatId, T.noPaid);
     for (const f of forms) {
-      const kb = f.free_edit_used ? {} : inlineKeyboard([[{ text: T.btnFreeEdit, callback_data: `fe:${f.id}` }]]);
       if (f.pdf_file_id) {
-        const r = await tg(env, "sendDocument", { chat_id: chatId, document: f.pdf_file_id, caption: T.pdfCaption(displayName(f)), ...kb });
+        const r = await tg(env, "sendDocument", { chat_id: chatId, document: f.pdf_file_id, caption: T.pdfCaption(displayName(f)) });
         if (r.ok) continue;
       }
       await deliverPdf(f);
-      if (!f.free_edit_used) await send(env, chatId, T.menuDone, kb);
     }
   }
 
@@ -372,19 +372,14 @@ export function createBot(env, fonts) {
       return provider(env).onAdminCallback(env, cq, data, { onPaid });
     }
 
+    // eski xabarlardagi "bepul tahrirlash" tugmasi endi ishlamaydi
     if (data.startsWith("fe:")) {
-      const f = await formById(env, Number(data.slice(3)));
-      if (!f || f.chat_id !== chatId || !f.paid) return done();
-      if (f.free_edit_used) return done(T.freeEditUsed);
-      await done();
-      await saveForm(env, f, { status: "review", edit_key: null });
-      await send(env, chatId, T.chooseEdit, editKeyboard());
-      return;
+      await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+      return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.editNotAvailable, show_alert: true });
     }
 
     const form = await currentForm(env, chatId);
     if (!form || !["review", "filling"].includes(form.status)) return done();
-    // to'langan anketada faqat bepul tahrirlash (review) holatida
     if (form.status === "filling" && !data.startsWith("e:")) return done();
 
     if (data === "edit") {
@@ -411,7 +406,7 @@ export function createBot(env, fonts) {
       await done();
       await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
       if (form.paid) {
-        // tasdiqdan keyingi bepul tahrirlash yakuni
+        // eski (bepul tahrirlash davridagi) to'langan anketani yakunlash
         await saveForm(env, form, { status: "done", free_edit_used: 1, edit_key: null });
         await deliverPdf(form, T.editedPdf);
         return;

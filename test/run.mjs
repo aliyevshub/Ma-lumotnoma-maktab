@@ -175,6 +175,13 @@ try {
     has(c, "biriktirilgan");
     // imlo tuzatish (bepul qoidalar)
     has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: o'zbek");
+    has(c, "20. Rasm 3x4: biriktirilgan ✅");
+    assert.ok(!texts(c).includes("suratni rasm (foto) qilib yuboring:"), "20-bandda ko'rsatma chiqdi");
+    // ogohlantirish alohida xabar, tugmalar uning ostida
+    const msgs = c.filter((x) => x.method === "sendMessage");
+    const summaryMsg = msgs.at(-2), warn = msgs.at(-1);
+    assert.ok(summaryMsg.text.startsWith("Kiritilgan ma'lumotlarni tekshiring") && !summaryMsg.reply_markup);
+    assert.ok(warn.text.startsWith("⚠️ Diqqat!") && warn.text.includes("xizmat haqi qayta to'lanadi"));
     const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.text);
     assert.deepEqual(kb, ["✏️ Tahrirlash", "✅ Hammasi to'g'ri"]);
   });
@@ -246,8 +253,7 @@ try {
     const pdf = readFileSync(doc.document.file);
     assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
     assert.ok(c.some((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN), "admin nusxa olmadi");
-    const kb = JSON.stringify(c.at(-1).reply_markup);
-    assert.ok(kb.includes("Tahrirlash (1 marta bepul)") && kb.includes("fe:1"), "bepul tahrirlash tugmasi yo'q");
+    assert.ok(!JSON.stringify(c).includes("fe:"), "bepul tahrirlash tugmasi chiqmasligi kerak");
   });
 
   await step("ikki marta tasdiqlab bo'lmaydi", async () => {
@@ -261,14 +267,11 @@ try {
     assert.equal(typeof d.document, "string");
   });
 
-  await step("bepul tahrirlash: 1 marta", async () => {
-    has(await press(USER, "fe:1"), "bandni tanlang");
-    await press(USER, "e:orzular");
-    await say(USER, "o'qituvchi bo'lish");
-    const c = await press(USER, "ok");
-    has(c, "O'zgartirishlar saqlandi");
-    assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file));
-    has(await press(USER, "fe:1"), "imkoniyatidan foydalanilgan");
+  await step("to'langan hujjatni tahrirlab bo'lmaydi (eski tugma ham ishlamaydi)", async () => {
+    const c = await press(USER, "fe:1");
+    assert.ok(JSON.stringify(c).includes("o'zgartirish kiritish imkoni mavjud emas"));
+    assert.ok(!c.some((x) => x.method === "sendDocument" || (x.text || "").includes("bandni tanlang")));
+    assert.ok(!JSON.stringify(await say(USER, "/mening")).includes("fe:"));
   });
 
   await step("/holat — statistika", async () => {
@@ -379,9 +382,13 @@ try {
   });
 
   await step("tahrirlangan javob ham qoidalar bilan tuzatiladi", async () => {
-    await press(USER2, "fe:4");
-    await press(USER2, "e:fel_atvor");
-    has(await say(USER2, "  sabrli ,  mehribon "), "sabrli, mehribon");
+    const U = 444;
+    await say(U, "/start");
+    for (let i = 0; i < 19; i++) await say(U, ANSWERS[i]);
+    await photo(U, "face5");
+    await press(U, "edit");
+    await press(U, "e:fel_atvor");
+    has(await say(U, "  sabrli ,  mehrbon "), "sabrli, mehribon");
   });
 
   console.log(`\nHammasi o'tdi: ${passed} ta tekshiruv ✅`);

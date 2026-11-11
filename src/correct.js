@@ -19,7 +19,7 @@ const WORDS = {
   shaxmat: "shaxmat", shahmat: "shaxmat", futbol: "futbol", fudbol: "futbol",
   mfy: "MFY", kocha: "ko'cha", "kuchasi": "ko'chasi", kochasi: "ko'chasi", mahalla: "mahalla", mahala: "mahalla",
   toshkent: "Toshkent", tashkent: "Toshkent", samarqand: "Samarqand", buxoro: "Buxoro",
-  mehribon: "mehribon", mexribon: "mehribon", tirishqoq: "tirishqoq", tirishqok: "tirishqoq",
+  mehribon: "mehribon", mexribon: "mehribon", mehrbon: "mehribon", mexrbon: "mehribon", tirishqoq: "tirishqoq", tirishqok: "tirishqoq",
   "yo'q": "yo'q", yoq: "yo'q", "yuq": "yo'q", bor: "bor",
 };
 
