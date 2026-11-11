@@ -1,6 +1,6 @@
 // Bot mantig'i: anketa, tekshirish, tahrirlash, PDF, admin buyruqlari
 import { tg, send, sendPdf, sendFile, inlineKeyboard, downloadFile } from "./telegram.js";
-import { QUESTIONS, MAX_LEN, MAX_LEN_LONG, questionIndex, parseDate, parsePhone } from "./questions.js";
+import { QUESTIONS, MAX_LEN, MAX_LEN_LONG, questionIndex, parseDate, parsePhone, checkAnswer } from "./questions.js";
 import {
   currentForm, formById, createForm, saveForm, deleteForm, paidForms, allPaidForms, displayName,
 } from "./db.js";
@@ -121,7 +121,9 @@ export function createBot(env, fonts) {
         value = parsePhone(text);
         if (!value) return send(env, form.chat_id, T.badPhone);
       } else {
-        value = ruleFix(q.key, value);
+        const r = checkAnswer(q, ruleFix(q.key, value), form.answers);
+        if (r.error) return send(env, form.chat_id, T[r.error]);
+        value = r.value;
       }
       await saveForm(env, form, { answers: { ...form.answers, [q.key]: value } });
     }

@@ -9,6 +9,10 @@ type = "Data"
 globs = ["**/*.ttf"]
 fallthrough = true
 
+# Har kuni 02:17 (UTC) da 30 kundan eski anketalar bazadan o'chiriladi
+[triggers]
+crons = ["17 2 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "malumotnoma"

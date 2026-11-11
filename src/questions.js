@@ -2,21 +2,22 @@
 // label  — PDF'dagi va xulosadagi nom
 // prompt — botda so'raladigan matn (bo'lmasa label ishlatiladi)
 // type   — text | date | phone | photo
+// check  — name (faqat harflar) | fio (kamida 2 so'z) | count | order (raqam); bo'lmasa — kamida 2 harf
 export const QUESTIONS = [
-  { key: "familiya", label: "Familiyasi", type: "text" },
-  { key: "ism", label: "Ismi", type: "text" },
-  { key: "sharif", label: "Sharifi", type: "text" },
+  { key: "familiya", label: "Familiyasi", type: "text", check: "name" },
+  { key: "ism", label: "Ismi", type: "text", check: "name" },
+  { key: "sharif", label: "Sharifi", type: "text", check: "name" },
   { key: "tugilgan", label: "Tug'ilgan kun, oy, yil", type: "date",
     prompt: "Tug'ilgan kun, oy, yil\n(masalan: 15.03.2018)" },
-  { key: "millati", label: "Millati", type: "text" },
-  { key: "otasi", label: "Otasi", type: "text", prompt: "Otasi (F.I.Sh.)" },
+  { key: "millati", label: "Millati", type: "text", check: "name" },
+  { key: "otasi", label: "Otasi", type: "text", check: "fio", prompt: "Otasi (F.I.Sh.)" },
   { key: "ota_ish", label: "Ish joyi, lavozimi", type: "text",
     prompt: "Otasining ish joyi, lavozimi" },
-  { key: "onasi", label: "Onasi", type: "text", prompt: "Onasi (F.I.Sh.)" },
+  { key: "onasi", label: "Onasi", type: "text", check: "fio", prompt: "Onasi (F.I.Sh.)" },
   { key: "ona_ish", label: "Ish joyi, lavozimi", type: "text",
     prompt: "Onasining ish joyi, lavozimi" },
-  { key: "farzand_soni", label: "Oilada nechta farzand", type: "text" },
-  { key: "nechanchi", label: "Oilada nechanchi farzand", type: "text" },
+  { key: "farzand_soni", label: "Oilada nechta farzand", type: "text", check: "count" },
+  { key: "nechanchi", label: "Oilada nechanchi farzand", type: "text", check: "order" },
   { key: "sharoit", label: "Oilaviy sharoiti", type: "text" },
   { key: "fanlar", label: "Qiziqqan fanlari", type: "text" },
   { key: "togaraklar", label: "Qanday to'garaklarga qatnashadi", type: "text" },
@@ -57,4 +58,43 @@ export function parsePhone(text) {
   if (digits.length !== 12 || !digits.startsWith("998")) return null;
   const p = digits.slice(3);
   return `+998 ${p.slice(0, 2)} ${p.slice(2, 5)} ${p.slice(5, 7)} ${p.slice(7, 9)}`;
+}
+
+const letters = (s) => (String(s).match(/\p{L}/gu) || []).length;
+
+// "3", "3 ta", "3-chi" → 3 (1..20), aks holda null
+export function parseCount(text) {
+  const m = String(text).trim().match(/^(\d{1,2})\s*(-?\s*(ta|nchi|chi|inchi))?\.?$/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n >= 1 && n <= 20 ? n : null;
+}
+
+// Matnli javobni tekshirish. Qaytaradi: { value } yoki { error: "matn kaliti" }
+export function checkAnswer(q, value, answers) {
+  switch (q.check) {
+    case "name":
+      if (!/^[\p{L}' -]+$/u.test(value) || letters(value) < 2) return { error: "badName" };
+      return { value };
+    case "fio":
+      if (!/^[\p{L}' .-]+$/u.test(value) || value.split(" ").filter((w) => letters(w) >= 2).length < 2) return { error: "badFio" };
+      return { value };
+    case "count": {
+      const n = parseCount(value);
+      if (n == null) return { error: "badCount" };
+      const order = parseCount(answers.nechanchi);
+      if (order != null && order > n) return { error: "badCountLess" };
+      return { value: String(n) };
+    }
+    case "order": {
+      const n = parseCount(value);
+      if (n == null) return { error: "badCount" };
+      const total = parseCount(answers.farzand_soni);
+      if (total != null && n > total) return { error: "badOrder" };
+      return { value: String(n) };
+    }
+    default:
+      if (letters(value) < 2) return { error: "badText" };
+      return { value };
+  }
 }

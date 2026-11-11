@@ -19,6 +19,12 @@ export const T = {
   badDate: "Sana noto'g'ri kiritilgan. Iltimos, kun.oy.yil shaklida kiriting (masalan: 15.03.2018).",
   badPhone: "Telefon raqami noto'g'ri kiritilgan. Namuna: +998 90 123 45 67",
   needText: "Iltimos, javobni matn shaklida kiriting.",
+  badName: "Iltimos, faqat harflardan foydalaning.",
+  badFio: "Iltimos, familiya, ism va sharifni to'liq kiriting.",
+  badCount: "Iltimos, sonni raqam bilan kiriting (masalan: 3).",
+  badOrder: "Farzand tartib raqami farzandlar sonidan katta bo'lishi mumkin emas.",
+  badCountLess: "Farzandlar soni farzand tartib raqamidan kam bo'lishi mumkin emas.",
+  badText: "Iltimos, javobni to'g'ri kiriting.",
   needPhoto: "Iltimos, 3x4 o'lchamdagi suratni rasm (foto) shaklida yuboring.",
   tooLong: (n) => `Javob juda uzun. Iltimos, ${n} belgidan oshirmang.`,
   reviewTitle: "Kiritilgan ma'lumotlarni tekshiring:",
@@ -63,7 +69,9 @@ export const T = {
   pdfError: "Hujjatni tayyorlashda texnik xatolik yuz berdi. Administrator xabardor qilindi, hujjat qisqa vaqt ichida yuboriladi.",
 
   menuDone:
-    "Ma'lumotnoma rasmiylashtirildi.\n/mening — hujjatni qayta olish\n/yangi — boshqa farzand uchun yangi anketa",
+    "Ma'lumotnoma rasmiylashtirildi.\n" +
+    "Iltimos, hujjatni saqlab qo'ying: ma'lumotlar 30 kundan so'ng tizimdan o'chiriladi.\n\n" +
+    "/mening — hujjatni qayta olish\n/yangi — boshqa farzand uchun yangi anketa",
   editNotAvailable: "Rasmiylashtirilgan hujjatga o'zgartirish kiritish imkoni mavjud emas. Qayta rasmiylashtirish uchun /yangi buyrug'idan foydalaning.",
   editedPdf: "O'zgartirishlar saqlandi ✅ Yangilangan Ma'lumotnoma:",
   noPaid: "Sizda rasmiylashtirilgan Ma'lumotnoma mavjud emas. Boshlash uchun /start buyrug'ini yuboring.",

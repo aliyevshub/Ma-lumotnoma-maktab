@@ -102,7 +102,7 @@ const vars = {
   TG_API_BASE: `http://127.0.0.1:${TG_PORT}`, BOT_TOKEN: "TEST", ADMIN_ID: String(ADMIN),
   CARD_NUMBER: "8600 1234 5678 9012", CARD_OWNER: "ALIYEV A.", WEBHOOK_SECRET: SECRET,
 };
-const wk = spawn("npx", ["wrangler", "dev", "--local", "--port", String(WK_PORT), "--persist-to", STATE,
+const wk = spawn("npx", ["wrangler", "dev", "--local", "--test-scheduled", "--port", String(WK_PORT), "--persist-to", STATE,
   ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])], { stdio: ["ignore", "pipe", "pipe"], detached: true });
 let log = "";
 wk.stdout.on("data", (d) => (log += d));
@@ -390,6 +390,42 @@ try {
     await press(U, "edit");
     await press(U, "e:fel_atvor");
     has(await say(U, "  sabrli ,  mehrbon "), "sabrli, mehribon");
+  });
+
+  await step("javoblarni tekshirish: ma'nosiz javoblar qabul qilinmaydi", async () => {
+    const U = 555;
+    await say(U, "/start");
+    has(await say(U, "Hus1"), "faqat harflardan");
+    for (let i = 0; i < 4; i++) await say(U, ANSWERS[i]);
+    has(await say(U, "$3&"), "faqat harflardan");
+    await say(U, ANSWERS[4]);
+    has(await say(U, "Jwjw"), "to'liq kiriting");
+    for (let i = 5; i < 9; i++) await say(U, ANSWERS[i]);
+    has(await say(U, "je"), "raqam bilan");
+    has(await say(U, "3 ta"), "Oilada nechanchi farzand");
+    has(await say(U, "5"), "sonidan katta bo'lishi mumkin emas");
+    has(await say(U, "2"), "Oilaviy sharoiti");
+    has(await say(U, "!!"), "to'g'ri kiriting");
+    await say(U, ANSWERS[11]);
+    for (let i = 12; i < 19; i++) await say(U, ANSWERS[i]);
+    const c = await photo(U, "face6");
+    has(c, "10. Oilada nechta farzand: 3"); has(c, "11. Oilada nechanchi farzand: 2");
+  });
+
+  await step("PDF'dan keyin «hujjatni saqlab qo'ying» eslatmasi", async () => {
+    const c = await say(USER, "salom");
+    has(c, "30 kundan so'ng tizimdan o'chiriladi");
+  });
+
+  await step("avtomatik tozalash: 30 kundan eski anketalar bazadan o'chadi", async () => {
+    execSync(`npx wrangler d1 execute malumotnoma --local --persist-to ${STATE} --command "UPDATE forms SET created_at = datetime('now','-31 days') WHERE id = 1; UPDATE payments SET created_at = datetime('now','-31 days') WHERE form_id = 1;"`, { stdio: "ignore", env: { ...process.env, CI: "1" } });
+    const r = await fetch(`http://127.0.0.1:${WK_PORT}/__scheduled?cron=17+2+*+*+*`);
+    assert.equal(r.status, 200);
+    await new Promise((res) => setTimeout(res, 1000));
+    has(await say(USER, "/mening"), "mavjud emas");
+    // statistika uchun summa qoladi
+    has(await say(ADMIN, "/holat"), "Jami tushum: 10 000 so'm");
+    has(await say(USER2, "/mening"), "Ma'lumotnoma");
   });
 
   console.log(`\nHammasi o'tdi: ${passed} ta tekshiruv ✅`);

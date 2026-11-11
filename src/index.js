@@ -4,6 +4,7 @@ import bold from "../fonts/LiberationSerif-Bold.ttf";
 import { createBot } from "./bot.js";
 import { tg } from "./telegram.js";
 import { T } from "./texts.js";
+import { cleanup } from "./cleanup.js";
 
 const fonts = { regular, bold };
 
@@ -52,5 +53,10 @@ export default {
       console.log("update xatosi:", e?.stack || e);
     }
     return new Response("ok");
+  },
+
+  // Har kuni bir marta (wrangler.toml → [triggers]) — eski anketalarni o'chirish
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(cleanup(env));
   },
 };
