@@ -1,0 +1,22 @@
+name = "malumotnoma-bot"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Şriftlar (TTF) Worker ichiga ikkilik ma'lumot sifatida qöşiladi
+[[rules]]
+type = "Data"
+globs = ["**/*.ttf"]
+fallthrough = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "malumotnoma"
+database_id = "BU_YERGA_D1_ID"   # wrangler d1 create malumotnoma → çiqqan id
+
+[vars]
+CLASS_NAME = "2A"
+PRICE = "5000"
+PAYMENT_PROVIDER = "manual"   # keyinçalik: "payme" yoki "stars"
+# Maxfiy qiymatlar (wrangler secret put ...):
+#   BOT_TOKEN, ADMIN_ID, CARD_NUMBER, CARD_OWNER, WEBHOOK_SECRET
