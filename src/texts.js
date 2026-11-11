@@ -25,6 +25,7 @@ export const T = {
   badOrder: "Farzand tartib raqami farzandlar sonidan katta bo'lishi mumkin emas.",
   badCountLess: "Farzandlar soni farzand tartib raqamidan kam bo'lishi mumkin emas.",
   badText: "Iltimos, javobni to'g'ri kiriting.",
+  noCyrillic: "Iltimos, javobni lotin harflarida yozing (masalan: Shahzoda, Toshkent).",
   needPhoto: "Iltimos, 3x4 o'lchamdagi suratni rasm (foto) shaklida yuboring.",
   tooLong: (n) => `Javob juda uzun. Iltimos, ${n} belgidan oshirmang.`,
   reviewTitle: "Kiritilgan ma'lumotlarni tekshiring:",

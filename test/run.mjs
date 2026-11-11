@@ -503,8 +503,10 @@ try {
     const U = 555;
     await say(U, "/start");
     has(await say(U, "Hus1"), "faqat harflardan");
+    has(await say(U, "Атаханов"), "lotin harflarida yozing"); // kirill qabul qilinmaydi
     for (let i = 0; i < 4; i++) await say(U, ANSWERS[i]);
     has(await say(U, "$3&"), "faqat harflardan");
+    has(await say(U, "Узбек"), "lotin harflarida yozing");
     await say(U, ANSWERS[4]);
     has(await say(U, "Jwjw"), "to'liq kiriting");
     for (let i = 5; i < 9; i++) await say(U, ANSWERS[i]);
@@ -513,6 +515,7 @@ try {
     has(await say(U, "5"), "sonidan katta bo'lishi mumkin emas");
     has(await say(U, "2"), "Oilaviy şaroiti");
     has(await say(U, "!!"), "to'g'ri kiriting");
+    has(await say(U, "Яхши"), "lotin harflarida yozing");
     await say(U, ANSWERS[11]);
     for (let i = 12; i < 19; i++) await say(U, ANSWERS[i]);
     const c = await photo(U, "face6");

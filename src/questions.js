@@ -72,6 +72,8 @@ export function parseCount(text) {
 
 // Matnli javobni tekshirish. Qaytaradi: { value } yoki { error: "matn kaliti" }
 export function checkAnswer(q, value, answers) {
+  // kirill yozuvi qabul qilinmaydi — faqat lotin harflari
+  if (/[\u0400-\u04FF]/.test(value)) return { error: "noCyrillic" };
   switch (q.check) {
     case "name":
       if (!/^[\p{L}' -]+$/u.test(value) || letters(value) < 2) return { error: "badName" };
