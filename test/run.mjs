@@ -147,11 +147,8 @@ try {
   await step("/start — salomlashish va 1-savol", async () => {
     const c = await say(USER, "/start");
     has(c, "rasmiylashtirish boshlandi"); assert.ok(!texts(c).includes("2A"));
-    has(c, "qaysi yozuvda");
-    const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.callback_data);
-    assert.deepEqual(kb, ["ab:latin", "ab:new"]);
-    has(await say(USER, "Aliyeva"), "qaysi yozuvda"); // tanlamay yozsa — qayta so'raladi
-    const c2 = await press(USER, "ab:latin");
+    assert.ok(!texts(c).includes("qaysi yozuvda") && !JSON.stringify(c).includes("ab:latin"), "yozuv tanlovi chiqmasligi kerak");
+    const c2 = c;
     has(c2, "Savol 1/20"); has(c2, "Familiyasi");
   });
 
@@ -174,7 +171,7 @@ try {
 
   await step("noto'g'ri telefon rad etiladi", async () => {
     has(await say(USER, "12345"), "Telefon raqami noto'g'ri kiritilgan");
-    has(await say(USER, "90 123 45 67"), "Yashash manzili");
+    has(await say(USER, "90 123 45 67"), "Yaşaş manzili");
   });
 
   await step("juda uzun javob rad etiladi", async () => {
@@ -188,7 +185,7 @@ try {
     has(c, "Kiritilgan ma'lumotlarni tekshiring"); has(c, "15.03.2018"); has(c, "+998 90 123 45 67");
     has(c, "biriktirilgan");
     // imlo tuzatish (bepul qoidalar)
-    has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: O'zbek");
+    has(c, "1. Familiyasi: Aliyeva"); has(c, "5. Millati: Özbek");
     has(c, "20. Rasm 3x4: biriktirilgan ✅");
     assert.ok(!texts(c).includes("suratni rasm (foto) qilib yuboring:"), "20-bandda ko'rsatma chiqdi");
     // ogohlantirish alohida xabar, tugmalar uning ostida
@@ -204,7 +201,7 @@ try {
     const c = await press(USER, "edit");
     assert.equal(c.find((x) => x.method === "editMessageReplyMarkup").reply_markup.inline_keyboard.length, 11);
     has(await press(USER, "e:millati"), "Millati");
-    has(await say(USER, "qozoq"), "2. Ismi: Shahzoda");
+    has(await say(USER, "qozoq"), "2. Ismi: Şahzoda");
     const c2 = await say(USER, "nimadir");
     has(c2, "Kiritilgan ma'lumotlarni tekshiring");
     has(c2, "5. Millati: Qozoq");
@@ -230,7 +227,7 @@ try {
     const toAdmin = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
     assert.ok(toAdmin, "admin chekni olmadi");
     assert.equal(toAdmin.photo, "receipt1");
-    has([toAdmin], "Aliyeva Shahzoda");
+    has([toAdmin], "Aliyeva Şahzoda");
     const btns = toAdmin.reply_markup.inline_keyboard[0];
     assert.deepEqual(btns.map((b) => b.text), ["✅ Tasdiqlash", "❌ Rad etish"]);
     paymentId = btns[0].callback_data.split(":")[1];
@@ -263,7 +260,7 @@ try {
     const c = await press(ADMIN, `ap:${paymentId}`, 556);
     has(c, "Hujjat tekshirilmoqda");
     assert.ok(!c.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER), "tekshiruvsiz PDF ketdi!");
-    has(c, "Tekshirish: Aliyeva Shahzoda (anketa #1)");
+    has(c, "Tekshirish: Aliyeva Şahzoda (anketa #1)");
     const draft = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
     assert.ok(draft?.document?.file, "adminga qoralama kelmadi");
     const kb = JSON.parse(draft.reply_markup).inline_keyboard[0].map((b) => b.callback_data);
@@ -286,10 +283,9 @@ try {
   await step("admin bandni tuzatadi → yangi qoralama", async () => {
     has(await press(ADMIN, "ae:1", 557), "qaysi bandni tuzatasiz");
     const ask = await press(ADMIN, "af:1:orzular", 558);
-    has(ask, "Hozirgi (eski lotin): Shifokor bo'lish"); has(ask, "Hozirgi (yangi alifbo): Şifokor böliş");
-    has(ask, "Anketa yozuvi: oddiy lotin");
+    has(ask, "Hozirgi: Şifokor böliş"); has(ask, "avtomatik o'giriladi");
     const c = await say(ADMIN, "Shifokor bo'lish, ota-onasini xursand qilish");
-    has(c, "Saqlandi"); has(c, "17. Kelajakdagi orzulari: Shifokor bo'lish, ota-onasini xursand qilish");
+    has(c, "Saqlandi"); has(c, "17. Kelajakdagi orzulari: Şifokor böliş, ota-onasini xursand qiliş");
     assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file), "yangi qoralama kelmadi");
   });
 
@@ -298,14 +294,14 @@ try {
     has(c, "Ma'lumotnoma tayyor");
     const doc = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === USER);
     assert.ok(doc?.document?.file, "PDF yuborilmadi");
-    assert.match(doc.document.name, /^Malumotnoma_Aliyeva_Shahzoda\.pdf$/);
+    assert.match(doc.document.name, /^Malumotnoma_Aliyeva_Şahzoda\.pdf$/);
     assert.equal(readFileSync(doc.document.file).subarray(0, 5).toString(), "%PDF-");
     const txt = execSync(`pdftotext "${doc.document.file}" -`).toString();
-    assert.ok(txt.includes("xursand qilish"), "admin tuzatishi PDF'ga tushmadi");
+    assert.ok(txt.includes("xursand qiliş"), "admin tuzatishi PDF'ga tushmadi");
     const copy = c.find((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
     assert.ok(copy, "admin nusxa olmadi");
     assert.ok(JSON.stringify(copy.reply_markup).includes("ae:1"));
-    has(c, "Yuborildi: Aliyeva Shahzoda");
+    has(c, "Yuborildi: Aliyeva Şahzoda");
     // ikki marta bosilsa — qayta yuborilmaydi
     const c2 = await press(ADMIN, "as:1", 559);
     assert.ok(!c2.some((x) => x.method === "sendDocument" && Number(x.chat_id) === USER));
@@ -335,19 +331,15 @@ try {
     const l = await say(ADMIN, "/tahrir");
     has(l, "Tayyor hujjatlar (1–1 / 1)");
     assert.ok(JSON.stringify(l.at(-1).reply_markup).includes("tv:1"));
-    has(await press(ADMIN, "tv:1", 559), "Tekshirish: Aliyeva Shahzoda");
+    has(await press(ADMIN, "tv:1", 559), "Tekshirish: Aliyeva Şahzoda");
     const sr = await say(ADMIN, "/tahrir şahzoda");
     has(sr, "topildi: 1 ta"); assert.ok(JSON.stringify(sr.at(-1).reply_markup).includes("tv:1"));
     has(await say(ADMIN, "/tahrir Zuhra"), "hech narsa topilmadi");
-    // butun hujjatni yangi alifboga va qaytib eski lotinga o'tkazish
+    // anketa allaqachon yangi alifboda: "o'tkazish" tugmasi chiqmaydi, eski lotinga o'tkazish yo'q
     const menu = await press(ADMIN, "ae:1", 559);
-    assert.ok(JSON.stringify(menu).includes("ax:1:new") && JSON.stringify(menu).includes("ax:1:latin"));
-    const cv = await press(ADMIN, "ax:1:new", 559);
-    has(cv, "yangi alifboga o'tkazildi"); has(cv, "Şarifi: Bahodirovna"); has(cv, "Navbahor MFY, Mustaqillik köçasi");
-    const cvDoc = cv.find((x) => x.method === "sendDocument" && x.document?.file);
-    assert.ok(execSync(`pdftotext "${cvDoc.document.file}" -`).toString().includes("Qaydlar uçun"));
-    const back = await press(ADMIN, "ax:1:latin", 559);
-    has(back, "eski lotin yozuviga o'tkazildi"); has(back, "Mustaqillik ko'chasi"); has(back, "Sharifi: Bahodirovna");
+    assert.ok(!JSON.stringify(menu).includes("ax:1:"), "o'tkazish tugmasi chiqmasligi kerak");
+    assert.ok(!JSON.stringify(menu).includes("Eski lotin"));
+    assert.ok(!(await press(ADMIN, "ax:1:latin", 559)).some((x) => (x.text || "").includes("o'tkazildi")));
     const c = await say(ADMIN, "/tahrir 1");
     const draft = c.find((x) => x.method === "sendDocument");
     assert.ok(JSON.stringify(draft.reply_markup).includes("Qayta yuborish") && JSON.stringify(draft.reply_markup).includes("ar:1"));
@@ -390,7 +382,7 @@ try {
   });
 
   await step("/yangi va /bekor", async () => {
-    has(await say(USER, "/yangi"), "qaysi yozuvda");
+    has(await say(USER, "/yangi"), "Savol 1/20");
     has(await say(USER, "/yangi"), "yakunlanmagan anketa mavjud");
     has(await say(USER, "/bekor"), "bekor qilindi");
     has(await say(USER, "/mening"), "Ma'lumotnoma");
@@ -398,7 +390,6 @@ try {
 
   await step("admin anketasi to'lovsiz — tekshiruvdan keyin PDF", async () => {
     await say(ADMIN, "/start");
-    await press(ADMIN, "ab:latin");
     for (let i = 0; i < 19; i++) await say(ADMIN, ANSWERS[i]);
     await photo(ADMIN, "face2");
     const c = await press(ADMIN, "ok");
@@ -416,9 +407,9 @@ try {
   const sentTo = (cs, id) => cs.filter((x) => Number(x.chat_id) === id && (x.text || x.caption));
 
   await step("xabar yozish: tugma → kimga ekani → tasdiq → yuboriladi", async () => {
-    has(await press(ADMIN, "w:1", 700), "Xabar kimga: Aliyeva Shahzoda (anketa #1)");
+    has(await press(ADMIN, "w:1", 700), "Xabar kimga: Aliyeva Şahzoda (anketa #1)");
     const c = await say(ADMIN, "Assalomu alaykum, tekshiruv xabari");
-    has(c, "Kimga: Aliyeva Shahzoda (anketa #1)");
+    has(c, "Kimga: Aliyeva Şahzoda (anketa #1)");
     assert.equal(sentTo(c, USER).length, 0, "tasdiqsiz yuborildi!");
     const kb = c.at(-1).reply_markup.inline_keyboard[0].map((b) => b.callback_data);
     assert.deepEqual(kb, ["ws:1", "wc"]);
@@ -427,7 +418,7 @@ try {
     assert.equal(toUser.length, 1);
     assert.ok(toUser[0].text.startsWith("✉️ Administrator xabari (anketa #1)"));
     assert.ok(toUser[0].text.includes("tekshiruv xabari"));
-    has(c2, "Yuborildi: Aliyeva Shahzoda");
+    has(c2, "Yuborildi: Aliyeva Şahzoda");
   });
 
   await step("xabar yozish: Bekor — hech narsa ketmaydi", async () => {
@@ -456,14 +447,13 @@ try {
       reply_to_message: { message_id: 5, from: { id: 1, is_bot: true, first_name: "bot" }, chat: chat(USER), date: 0,
         text: "✉️ Administrator xabari (anketa #1):\n\nsalom" } } });
     const c = calls.slice(start);
-    has(c, "Javob: Aliyeva Shahzoda (anketa #1)");
+    has(c, "Javob: Aliyeva Şahzoda (anketa #1)");
     assert.ok(c.some((x) => x.method === "copyMessage" && Number(x.chat_id) === ADMIN));
     has(c, "administratorga yuborildi");
   });
 
   await step("xato rad etilgan chekni «Baribir tasdiqlash» bilan tasdiqlash", async () => {
     await say(USER2, "/start");
-    await press(USER2, "ab:latin");
     for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Shahzoda", "Madina"));
     await photo(USER2, "face3");
     await press(USER2, "ok");
@@ -502,7 +492,6 @@ try {
   await step("tahrirlangan javob ham qoidalar bilan tuzatiladi", async () => {
     const U = 444;
     await say(U, "/start");
-    await press(U, "ab:latin");
     for (let i = 0; i < 19; i++) await say(U, ANSWERS[i]);
     await photo(U, "face5");
     await press(U, "edit");
@@ -513,7 +502,6 @@ try {
   await step("javoblarni tekshirish: ma'nosiz javoblar qabul qilinmaydi", async () => {
     const U = 555;
     await say(U, "/start");
-    await press(U, "ab:latin");
     has(await say(U, "Hus1"), "faqat harflardan");
     for (let i = 0; i < 4; i++) await say(U, ANSWERS[i]);
     has(await say(U, "$3&"), "faqat harflardan");
@@ -521,19 +509,18 @@ try {
     has(await say(U, "Jwjw"), "to'liq kiriting");
     for (let i = 5; i < 9; i++) await say(U, ANSWERS[i]);
     has(await say(U, "je"), "raqam bilan");
-    has(await say(U, "3 ta"), "Oilada nechanchi farzand");
+    has(await say(U, "3 ta"), "Oilada neçançi farzand");
     has(await say(U, "5"), "sonidan katta bo'lishi mumkin emas");
-    has(await say(U, "2"), "Oilaviy sharoiti");
+    has(await say(U, "2"), "Oilaviy şaroiti");
     has(await say(U, "!!"), "to'g'ri kiriting");
     await say(U, ANSWERS[11]);
     for (let i = 12; i < 19; i++) await say(U, ANSWERS[i]);
     const c = await photo(U, "face6");
-    has(c, "10. Oilada nechta farzand: 3"); has(c, "11. Oilada nechanchi farzand: 2");
+    has(c, "10. Oilada neçta farzand: 3"); has(c, "11. Oilada neçançi farzand: 2");
   });
 
   await step("yangi alifbo: savollar, xulosa va PDF yorliqlari ö/ğ/ş/ç bilan", async () => {
-    has(await say(ADMIN, "/yangi"), "qaysi yozuvda");
-    has(await press(ADMIN, "ab:new"), "Familiyasi");
+    has(await say(ADMIN, "/yangi"), "Familiyasi");
     await say(ADMIN, "Aliyeva");
     has(await say(ADMIN, "şahzoda"), "Şarifi");
     await say(ADMIN, "Bahodirovna");
@@ -554,7 +541,7 @@ try {
     assert.ok(txt.includes("Şahzoda"), "javob o'zgarib ketgan");
     // admin yangi alifbodagi anketani oddiy lotinda tahrirlaydi → avtomatik o'giriladi
     const id = asId(pdfCalls);
-    has(await press(ADMIN, `af:${id}:manzil`, 900), "yangi alifbo (avtomatik o'giriladi)");
+    has(await press(ADMIN, `af:${id}:manzil`, 900), "avtomatik o'giriladi");
     const e = await say(ADMIN, "Toshkent shahar, Mustaqillik ko`chasi 5-uy");
     has(e, "Toşkent şahar, Mustaqillik köçasi 5-uy");
   });
@@ -562,6 +549,18 @@ try {
   await step("PDF'dan keyin «hujjatni saqlab qo'ying» eslatmasi", async () => {
     const c = await say(USER, "salom");
     has(c, "30 kundan so'ng tizimdan o'chiriladi");
+  });
+
+  await step("eski (oddiy lotindagi) anketani yangi alifboga o'tkazish", async () => {
+    execSync(`npx wrangler d1 execute malumotnoma --local --persist-to ${STATE} --command "UPDATE forms SET alphabet = 'latin', answers = json_set(answers, '$.sharif', 'Bahodir o''g''li', '$.manzil', 'Toshkent shahar, Mustaqillik ko''chasi') WHERE chat_id = ${USER2} AND paid = 1;"`, { stdio: "ignore", env: { ...process.env, CI: "1" } });
+    const f = await say(ADMIN, "/tahrir Madina");
+    const id = JSON.stringify(f).match(/tv:(\d+)/)[1];
+    const menu = await press(ADMIN, `ae:${id}`, 950);
+    assert.ok(JSON.stringify(menu).includes(`ax:${id}:new`), "eski anketada o'tkazish tugmasi bo'lishi kerak");
+    const cv = await press(ADMIN, `ax:${id}:new`, 951);
+    has(cv, "yangi alifboga o'tkazildi"); has(cv, "Bahodir öğli"); has(cv, "Toşkent şahar, Mustaqillik köçasi");
+    const doc = cv.find((x) => x.method === "sendDocument" && x.document?.file);
+    assert.ok(execSync(`pdftotext "${doc.document.file}" -`).toString().includes("Qaydlar uçun"));
   });
 
   await step("avtomatik tozalash: 30 kundan eski anketalar bazadan o'chadi", async () => {

@@ -15,9 +15,6 @@ export const T = {
     `Assalomu alaykum! Ma'lumotnomani rasmiylashtirish boshlandi.\n` +
     `Iltimos, savollarga ketma-ket javob bering.`,
   resume: "Anketani to'ldirish davom ettiriladi.",
-  chooseAlphabet: "Anketani qaysi yozuvda to'ldirasiz?",
-  btnLatin: "Lotin (o', g', sh, ch)",
-  btnNewAlphabet: "Yangi alifbo (ö, ğ, ş, ç)",
   progress: (n, total) => `Savol ${n}/${total}`,
   badDate: "Sana noto'g'ri kiritilgan. Iltimos, kun.oy.yil shaklida kiriting (masalan: 15.03.2018).",
   badPhone: "Telefon raqami noto'g'ri kiritilgan. Namuna: +998 90 123 45 67",
@@ -147,13 +144,10 @@ export const T = {
   btnDeliver: "📤 Foydalanuvchiga yuborish",
   btnRedeliver: "📤 Qayta yuborish",
   adminEditChoose: (name, id) => `✏️ ${name} (anketa #${id}) — qaysi bandni tuzatasiz?`,
-  adminEditAsk: (name, id, label, curOld, curNew, isNew) =>
-    `✏️ ${name} (anketa #${id})\n${label}\n\n` +
-    `Hozirgi (eski lotin): ${curOld}\n` +
-    `Hozirgi (yangi alifbo): ${curNew}\n\n` +
-    `Anketa yozuvi: ${isNew ? "yangi alifbo (avtomatik o'giriladi)" : "oddiy lotin"}\n\n` +
+  adminEditAsk: (name, id, label, cur, isNew) =>
+    `✏️ ${name} (anketa #${id})\n${label}\n\nHozirgi: ${cur}\n\n` +
+    (isNew ? "Oddiy lotinda yozsangiz ham yangi alifboga avtomatik o'giriladi.\n\n" : "") +
     `Yangi qiymatni yozing (bekor qilish: /bekor):`,
-  btnToOld: "🔤 Eski lotinga o'tkazish",
   btnToNew: "🔤 Yangi alifboga o'tkazish",
   adminConverted: (isNew) => `✅ Hujjat ${isNew ? "yangi alifboga" : "eski lotin yozuviga"} o'tkazildi. Yangilangan qoralama:`,
   listTitle: (from, to, total) => `📂 Tayyor hujjatlar (${from}–${to} / ${total}). Tahrirlash uchun ismni bosing:`,

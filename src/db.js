@@ -17,7 +17,8 @@ function hydrate(row) {
 }
 
 export async function createForm(env, chatId, username) {
-  const r = await env.DB.prepare("INSERT INTO forms (chat_id, username) VALUES (?, ?) RETURNING *")
+  // anketa doim yangi alifboda
+  const r = await env.DB.prepare("INSERT INTO forms (chat_id, username, alphabet) VALUES (?, ?, 'new') RETURNING *")
     .bind(chatId, username || null).first();
   return hydrate(r);
 }

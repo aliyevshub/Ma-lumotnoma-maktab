@@ -3,11 +3,11 @@
 Bu Telegram bot ota-onadan anketa javoblarini oladi va qog'oz Ma'lumotnomaga o'xshash PDF tayyorlaydi. Anketa 20 ta savoldan iborat, oxirida 3x4 rasm so'raladi. PDF namunadagi kabi: ramka, sarlavha, o'ng yuqorida rasm.
 Ishlash muhiti: **Cloudflare Workers + D1**.
 
-Bot matnlari oddiy lotin yozuvida (o', g', sh, ch). Anketa boshida foydalanuvchi yozuvni tanlaydi: oddiy lotin yoki yangi alifbo (ö, ğ, ş, ç). Savollar, xulosa va PDF yorliqlari tanlangan yozuvda bo'ladi; yangi alifboda javoblar ham avtomatik o'giriladi.
+Bot xabarlari oddiy lotin yozuvida (o', g', sh, ch). Anketa (savollar, xulosa, PDF yorliqlari) doim yangi alifboda (ö, ğ, ş, ç); foydalanuvchi va admin oddiy lotinda yozsa ham javoblar avtomatik yangi alifboga o'giriladi.
 
 ## Qanday ishlaydi
 
-1. `/start` → yozuvni tanlash → savollar birma-bir beriladi. Sana, telefon, ism, sonlar tekshiriladi; oddiy imlo xatolari bepul qoidalar bilan tuzatiladi.
+1. `/start` → savollar birma-bir beriladi. Sana, telefon, ism, sonlar tekshiriladi; oddiy imlo xatolari bepul qoidalar bilan tuzatiladi.
 2. Oxirida barcha javoblar va alohida ogohlantirish ko'rsatiladi: **✏️ Tahrirlash** / **✅ Hammasi to'g'ri**.
 3. Bot xizmat narxi va karta rekvizitlarini ko'rsatadi. Foydalanuvchi to'lab, chek rasmini yuboradi.
 4. Chek adminga keladi: **✅ Tasdiqlash** / **❌ Rad etish** / **✉️ Foydalanuvchiga yozish**. Rad etilsa, admin sababini yozadi; xato rad etilgan chekni **✅ Baribir tasdiqlash** mumkin.

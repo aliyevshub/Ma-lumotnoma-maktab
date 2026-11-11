@@ -29,11 +29,10 @@ export function createBot(env, fonts) {
     await send(env, form.chat_id, `${head}\n\n${A(form, q.prompt || q.label)}`);
   }
 
-  async function askAlphabet(form) {
-    await send(env, form.chat_id, T.chooseAlphabet, inlineKeyboard([[
-      { text: T.btnLatin, callback_data: "ab:latin" },
-      { text: T.btnNewAlphabet, callback_data: "ab:new" },
-    ]]));
+  // Anketa doim yangi alifboda. Yozuv tanlanmagan eski anketa ham yangi alifboga o'tadi.
+  async function startQuestions(form) {
+    if (!form.alphabet) await saveForm(env, form, { alphabet: "new" });
+    return ask(form, 0);
   }
 
   function summary(form) {
@@ -138,14 +137,12 @@ export function createBot(env, fonts) {
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     const rows = [];
     QUESTIONS.forEach((q, i) => {
-      const label = (q.prompt ? q.prompt.split("\n")[0] : q.label).replace(/\s*\(.*\)$/, "");
+      const label = A(f, (q.prompt ? q.prompt.split("\n")[0] : q.label).replace(/\s*\(.*\)$/, ""));
       const btn = { text: `${i + 1}. ${label}`.slice(0, 40), callback_data: `af:${f.id}:${q.key}` };
       if (i % 2 === 0) rows.push([btn]); else rows[rows.length - 1].push(btn);
     });
-    rows.push([
-      { text: T.btnToOld, callback_data: `ax:${f.id}:latin` },
-      { text: T.btnToNew, callback_data: `ax:${f.id}:new` },
-    ]);
+    // eski (oddiy lotinda to'ldirilgan) anketani yangi alifboga o'tkazish
+    if (f.alphabet !== "new") rows.push([{ text: T.btnToNew, callback_data: `ax:${f.id}:new` }]);
     await send(env, cq.message.chat.id, T.adminEditChoose(displayName(f), f.id), inlineKeyboard(rows));
   }
 
@@ -205,7 +202,7 @@ export function createBot(env, fonts) {
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
     const text = q.type === "photo" ? T.adminEditAskPhoto(displayName(f), f.id)
-      : T.adminEditAsk(displayName(f), f.id, label, toOld(f.answers[key] || "—"), toNew(f.answers[key] || "—"), f.alphabet === "new");
+      : T.adminEditAsk(displayName(f), f.id, A(f, label), f.answers[key] || "—", f.alphabet === "new");
     await send(env, cq.message.chat.id, text, { reply_markup: { force_reply: true } });
   }
 
@@ -320,13 +317,13 @@ export function createBot(env, fonts) {
   async function startNew(chatId, from) {
     const form = await createForm(env, chatId, from?.username);
     await send(env, chatId, T.welcome());
-    await askAlphabet(form);
+    await startQuestions(form);
   }
 
   async function resume(form) {
     switch (form.status) {
       case "filling":
-        if (!form.alphabet && form.step === 0) return askAlphabet(form);
+        if (!form.alphabet && form.step === 0) return startQuestions(form);
         if (form.edit_key) return send(env, form.chat_id, T.editAsk(labelOf(form, form.edit_key)));
         await send(env, form.chat_id, T.resume);
         return ask(form, form.step);
@@ -548,7 +545,7 @@ export function createBot(env, fonts) {
     if (form.edit_key) return acceptAnswer(form, QUESTIONS[questionIndex(form.edit_key)], msg);
     switch (form.status) {
       case "filling":
-        if (!form.alphabet && form.step === 0) return askAlphabet(form);
+        if (!form.alphabet && form.step === 0) await saveForm(env, form, { alphabet: "new" });
         return acceptAnswer(form, QUESTIONS[form.step], msg);
       case "review": return showReview(form);
       case "payment":
@@ -587,7 +584,7 @@ export function createBot(env, fonts) {
         await done();
         return f && f.paid ? sendAdminReview(f, chatId) : send(env, chatId, T.adminNotFound);
       }
-      if (kind === "ax") return adminConvert(cq, Number(id), key === "new" ? "new" : "latin");
+      if (kind === "ax") return key === "new" ? adminConvert(cq, Number(id), "new") : done();
       if (kind === "ae") return adminEditChoose(cq, Number(id));
       if (kind === "af") return adminEditField(cq, Number(id), key);
       await clearAdminState(cq.from.id);
@@ -608,13 +605,12 @@ export function createBot(env, fonts) {
     }
 
     const form = await currentForm(env, chatId);
+    // eski xabarlardagi yozuv tanlash tugmalari: endi tanlov yo'q — doim yangi alifbo
     if (data === "ab:latin" || data === "ab:new") {
+      await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
       if (!form || form.status !== "filling" || form.alphabet) return done();
       await done();
-      await saveForm(env, form, { alphabet: data.slice(3) });
-      await tg(env, "editMessageReplyMarkup", { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
-      await send(env, chatId, `✅ ${data === "ab:new" ? T.btnNewAlphabet : T.btnLatin}`);
-      return ask(form, 0);
+      return startQuestions(form);
     }
     if (!form || !["review", "filling"].includes(form.status)) return done();
     if (form.status === "filling" && !data.startsWith("e:")) return done();
