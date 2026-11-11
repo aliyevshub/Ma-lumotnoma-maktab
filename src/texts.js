@@ -2,68 +2,71 @@
 export const T = {
   // Start bosishdan oldin bot chatida ko'rinadigan matn (setMyDescription)
   botDescription: (cls, price) =>
-    `Assalomu alaykum! 👋\n` +
-    `Bu bot Ma'lumotnoma tayyorlaydi.\n` +
-    `Savollarga javob berasiz, 3x4 rasm yuborasiz, ${price} so'm to'laysiz — tayyor PDF shu yerga keladi.\n` +
+    `Assalomu alaykum!\n` +
+    `Ushbu bot orqali o'quvchi Ma'lumotnomasi rasmiylashtiriladi.\n` +
+    `Tartib: anketa savollariga javob beriladi, 3x4 rasm yuboriladi va tayyor hujjat PDF shaklida yuboriladi.\n` +
+    `Xizmat narxi: ${price} so'm.\n` +
     `Boshlash uchun «Start» tugmasini bosing.`,
   // Bot profilidagi qisqa yozuv (setMyShortDescription)
-  botShortDescription: () => `Ma'lumotnoma — anketa to'ldiring, PDF oling.`,
-  welcome: (cls, price) =>
-    `Assalomu alaykum! Bu bot Ma'lumotnoma tayyorlaydi.\n\n` +
-    `Savollarga birma-bir javob bering. Oxirida javoblarni tekshirib, ` +
-    `${price} so'm to'laysiz va tayyor PDF shu yerga keladi.\n\n` +
-    `Boshladik!`,
-  resume: "Anketani davom ettiramiz.",
+  botShortDescription: (price) => `O'quvchi Ma'lumotnomasini rasmiylashtirish. Xizmat narxi: ${price} so'm.`,
+  welcome: () =>
+    `Assalomu alaykum! Ma'lumotnomani rasmiylashtirish boshlandi.\n` +
+    `Iltimos, savollarga ketma-ket javob bering.`,
+  resume: "Anketani to'ldirish davom ettiriladi.",
   progress: (n, total) => `Savol ${n}/${total}`,
-  askText: "Javobni yozib yuboring.",
-  badDate: "Sana noto'g'ri. Kun.oy.yil ko'rinishida yozing, masalan: 15.03.2018",
-  badPhone: "Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67",
-  needText: "Iltimos, javobni matn bilan yozing.",
-  needPhoto: "Iltimos, 3x4 suratni rasm (foto) qilib yuboring.",
-  tooLong: (n) => `Javob juda uzun. ${n} belgidan qisqaroq yozing.`,
-  reviewTitle: "Javoblaringizni tekshiring:",
-  checking: "⏳ Javoblar tekshirilmoqda...",
-  autoFixed: "✍️ Imlo xatolari avtomatik tuzatildi. Noto'g'ri bo'lsa, ✏️ Tahrirlash orqali o'zgartiring.",
-  photoAttached: "biriktirildi ✅",
+  badDate: "Sana noto'g'ri kiritilgan. Iltimos, kun.oy.yil shaklida kiriting (masalan: 15.03.2018).",
+  badPhone: "Telefon raqami noto'g'ri kiritilgan. Namuna: +998 90 123 45 67",
+  needText: "Iltimos, javobni matn shaklida kiriting.",
+  needPhoto: "Iltimos, 3x4 o'lchamdagi suratni rasm (foto) shaklida yuboring.",
+  tooLong: (n) => `Javob juda uzun. Iltimos, ${n} belgidan oshirmang.`,
+  reviewTitle: "Kiritilgan ma'lumotlarni tekshiring:",
+  photoAttached: "biriktirilgan ✅",
   btnEdit: "✏️ Tahrirlash",
   btnConfirm: "✅ Hammasi to'g'ri",
   btnBack: "⬅️ Orqaga",
-  chooseEdit: "Qaysi javobni o'zgartirasiz?",
-  editAsk: (label) => `Yangi javobni yuboring:\n\n${label}`,
+  chooseEdit: "O'zgartirilishi lozim bo'lgan bandni tanlang:",
+  editAsk: (label) => `Yangi ma'lumotni kiriting:\n\n${label}`,
 
   // HTML: karta raqami <code> ichida — bosilsa nusxalanadi
   payInfo: (price, card, owner) =>
-    `Anketa tayyor ✅\n\n` +
-    `Ma'lumotnoma narxi: <b>${price} so'm</b>.\n\n` +
-    `Quyidagi kartaga ${price} so'm o'tkazing (Payme, Click yoki bank ilovasi orqali):\n\n` +
+    `Anketa qabul qilindi ✅\n\n` +
+    `Xizmat narxi: <b>${price} so'm</b>.\n\n` +
+    `To'lovni quyidagi karta raqamiga amalga oshiring (Payme, Click yoki bank ilovasi orqali):\n\n` +
     `💳 <code>${card}</code>\n👤 ${owner}\n\n` +
-    `👆 Karta raqamini nusxalash uchun ustiga bosing yoki pastdagi tugmani bosing.\n\n` +
-    `To'lovdan keyin chek rasmini (skrinshot) shu yerga yuboring.`,
+    `Karta raqamini nusxalash uchun raqam ustiga yoki quyidagi tugmaga bosing.\n\n` +
+    `To'lovdan so'ng to'lov chekini (skrinshot) shu yerga yuboring.\n\n` +
+    `<i>Eslatma: to'lov administrator tomonidan qo'lda tekshiriladi. Shu sababli hujjat darhol emas, ` +
+    `tekshiruvdan so'ng yuboriladi. Ba'zi hollarda bu bir necha soat davom etishi mumkin.</i>`,
   btnCopyCard: "📋 Karta raqamini nusxalash",
-  receiptReceived: "Chek qabul qilindi ✅ Admin tekshirgandan keyin PDF shu yerga keladi.",
-  waitAdmin: "Chekingiz tekshirilmoqda. Iltimos, biroz kuting.",
-  needReceipt: "Iltimos, to'lov chekini rasm (foto yoki fayl) qilib yuboring.",
-  approved: "To'lov tasdiqlandi ✅ Ma'lumotnomangiz:",
+  receiptReceived:
+    "To'lov cheki qabul qilindi ✅\n" +
+    "Chek administrator tomonidan tekshirilgach, Ma'lumotnoma shu yerga yuboriladi. " +
+    "Tekshiruv bir necha soat davom etishi mumkin. Iltimos, kuting — qayta chek yuborish shart emas.",
+  waitAdmin:
+    "To'lov cheki tekshirilmoqda. Ma'lumotnoma tekshiruvdan so'ng yuboriladi. " +
+    "Tekshiruv bir necha soat davom etishi mumkin.",
+  needReceipt: "Iltimos, to'lov chekini rasm yoki fayl shaklida yuboring.",
+  approved: "To'lov tasdiqlandi ✅ Ma'lumotnoma quyida ilova qilingan:",
   rejected: (reason) =>
-    `To'lov tasdiqlanmadi ❌\nSabab: ${reason}\n\nTo'g'ri chek rasmini qayta yuboring.`,
+    `To'lov tasdiqlanmadi ❌\nSabab: ${reason}\n\nIltimos, to'g'ri to'lov chekini qayta yuboring.`,
   pdfCaption: (name) => `Ma'lumotnoma — ${name}`,
-  pdfError: "PDF tayyorlashda xatolik bo'ldi. Admin xabardor qilindi, tez orada yuboriladi.",
+  pdfError: "Hujjatni tayyorlashda texnik xatolik yuz berdi. Administrator xabardor qilindi, hujjat qisqa vaqt ichida yuboriladi.",
 
   menuDone:
-    "Ma'lumotnomangiz tayyor. /mening — PDF'ni qayta olish.\n/yangi — boshqa farzand uchun yangi anketa.",
+    "Ma'lumotnoma rasmiylashtirildi.\n/mening — hujjatni qayta olish\n/yangi — boshqa farzand uchun yangi anketa",
   btnFreeEdit: "✏️ Tahrirlash (1 marta bepul)",
-  freeEditUsed: "Bepul tahrirlash ishlatilgan.",
-  editedPdf: "O'zgarishlar saqlandi ✅ Yangi Ma'lumotnoma:",
-  noPaid: "Sizda hali to'langan Ma'lumotnoma yo'q. Boshlash uchun /start bosing.",
-  newConfirm: "Yangi anketa boshlanadi. Oldingi Ma'lumotnomalaringiz /mening orqali qoladi.",
-  unfinishedExists: "Sizda tugallanmagan anketa bor. Avval uni yakunlang yoki /bekor bosing.",
-  cancelled: "Tugallanmagan anketa o'chirildi. Yangidan boshlash uchun /start bosing.",
-  nothingToCancel: "Bekor qilinadigan anketa yo'q.",
+  freeEditUsed: "Bepul tahrirlash imkoniyatidan foydalanilgan.",
+  editedPdf: "O'zgartirishlar saqlandi ✅ Yangilangan Ma'lumotnoma:",
+  noPaid: "Sizda rasmiylashtirilgan Ma'lumotnoma mavjud emas. Boshlash uchun /start buyrug'ini yuboring.",
+  newConfirm: "Yangi anketa boshlandi. Avvalgi Ma'lumotnomalar /mening bo'limida saqlanadi.",
+  unfinishedExists: "Sizda yakunlanmagan anketa mavjud. Avval uni yakunlang yoki /bekor buyrug'i orqali bekor qiling.",
+  cancelled: "Yakunlanmagan anketa bekor qilindi. Qayta boshlash uchun /start buyrug'ini yuboring.",
+  nothingToCancel: "Bekor qilinadigan anketa mavjud emas.",
   help:
     "/start — anketani boshlash yoki davom ettirish\n" +
-    "/mening — to'langan Ma'lumotnomani qayta olish\n" +
+    "/mening — rasmiylashtirilgan Ma'lumotnomani qayta olish\n" +
     "/yangi — boshqa farzand uchun yangi anketa\n" +
-    "/bekor — tugallanmagan anketani o'chirish",
+    "/bekor — yakunlanmagan anketani bekor qilish",
 
   // Admin
   adminReceipt: (p, f, user) =>
@@ -103,9 +106,9 @@ export const T = {
   writeFailed: "⚠️ Xabar yetib bormadi (foydalanuvchi botni to'xtatgan bo'lishi mumkin).",
   writeNeedText: "Iltimos, xabarni matn bilan yozing.",
   adminMessageToUser: (formId, text) =>
-    `✉️ Admin xabari (anketa #${formId}):\n\n${text}\n\nJavob yozish uchun shu xabarga javob (reply) qiling.`,
+    `✉️ Administrator xabari (anketa #${formId}):\n\n${text}\n\nJavob berish uchun ushbu xabarga javob (reply) yuboring.`,
   userReplyToAdmin: (name, formId, who) => `💬 Javob: ${name} (anketa #${formId})\n${who}`,
-  userReplySent: "Javobingiz adminga yuborildi ✅",
+  userReplySent: "Javobingiz administratorga yuborildi ✅",
   adminAlreadyPaid: "Bu anketa allaqachon tasdiqlangan.",
   adminNoData: "Hali tayyor anketa yo'q.",
   adminNotFound: "Bunday tayyor anketa topilmadi.",

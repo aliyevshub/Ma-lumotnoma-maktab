@@ -31,7 +31,7 @@ export default {
       const cls = env.CLASS_NAME || "2A";
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
       const d1 = await tg(env, "setMyDescription", { description: T.botDescription(cls, price) });
-      const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(cls) });
+      const d2 = await tg(env, "setMyShortDescription", { short_description: T.botShortDescription(price) });
       const me = await tg(env, "getMe");
       return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, bot: me.result?.username || null });
     }

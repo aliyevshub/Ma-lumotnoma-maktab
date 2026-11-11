@@ -7,7 +7,7 @@ import {
 import { provider, adminIds } from "./payments/index.js";
 import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
-import { ruleFix, aiFix } from "./correct.js";
+import { ruleFix } from "./correct.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -130,15 +130,7 @@ export function createBot(env, fonts) {
     }
     const next = form.step + 1;
     if (next >= QUESTIONS.length) {
-      // anketa oxirida — sun'iy intellekt bilan imlo tuzatish (kalit bo'lsa)
-      let answers = form.answers;
-      if (env.ANTHROPIC_API_KEY) {
-        await send(env, form.chat_id, T.checking);
-        answers = await aiFix(env, form.answers);
-      }
-      const changed = Object.keys(answers).some((k) => answers[k] !== form.answers[k]);
-      await saveForm(env, form, { step: next, status: "review", answers });
-      if (changed) await send(env, form.chat_id, T.autoFixed);
+      await saveForm(env, form, { step: next, status: "review" });
       return showReview(form);
     }
     await saveForm(env, form, { step: next });
@@ -291,7 +283,7 @@ export function createBot(env, fonts) {
   // Foydalanuvchi admin xabariga javob (reply) qilsa — adminga yetkaziladi
   async function forwardUserReply(msg) {
     const orig = msg.reply_to_message;
-    const m = orig?.from?.is_bot && (orig.text || "").match(/^✉️ Admin xabari \(anketa #(\d+)\)/);
+    const m = orig?.from?.is_bot && (orig.text || "").match(/^✉️ Administrator xabari \(anketa #(\d+)\)/);
     if (!m) return false;
     const f = await formById(env, Number(m[1]));
     if (!f || f.chat_id !== msg.chat.id) return false;
