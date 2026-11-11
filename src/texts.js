@@ -147,17 +147,28 @@ export const T = {
   btnDeliver: "📤 Foydalanuvchiga yuborish",
   btnRedeliver: "📤 Qayta yuborish",
   adminEditChoose: (name, id) => `✏️ ${name} (anketa #${id}) — qaysi bandni tuzatasiz?`,
-  adminEditAsk: (name, id, label, cur, isNew) =>
-    `✏️ ${name} (anketa #${id})\n${label}\n\nHozirgi: ${cur}\n` +
+  adminEditAsk: (name, id, label, curOld, curNew, isNew) =>
+    `✏️ ${name} (anketa #${id})\n${label}\n\n` +
+    `Hozirgi (eski lotin): ${curOld}\n` +
+    `Hozirgi (yangi alifbo): ${curNew}\n\n` +
     `Anketa yozuvi: ${isNew ? "yangi alifbo (avtomatik o'giriladi)" : "oddiy lotin"}\n\n` +
     `Yangi qiymatni yozing (bekor qilish: /bekor):`,
+  btnToOld: "🔤 Eski lotinga o'tkazish",
+  btnToNew: "🔤 Yangi alifboga o'tkazish",
+  adminConverted: (isNew) => `✅ Hujjat ${isNew ? "yangi alifboga" : "eski lotin yozuviga"} o'tkazildi. Yangilangan qoralama:`,
+  listTitle: (from, to, total) => `📂 Tayyor hujjatlar (${from}–${to} / ${total}). Tahrirlash uchun ismni bosing:`,
+  searchTitle: (q, n) => `🔎 «${q}» bo'yicha topildi: ${n} ta. Tahrirlash uchun ismni bosing:`,
+  listEmpty: "Hali tayyor hujjat yo'q.",
+  searchEmpty: (q) => `«${q}» bo'yicha hech narsa topilmadi.`,
+  btnPrev: "⬅️ Oldingi",
+  btnNext: "Keyingi ➡️",
   adminEditAskPhoto: (name, id) => `✏️ ${name} (anketa #${id})\nYangi 3x4 rasmni yuboring (bekor qilish: /bekor):`,
   adminEditNeedPhoto: "Iltimos, rasm (foto) yuboring.",
   adminEditSaved: "✅ Saqlandi. Yangilangan qoralama:",
   adminEditCancelled: "Tahrirlash bekor qilindi.",
   adminDelivered: (name, id) => `✅ Yuborildi: ${name} (anketa #${id})`,
   adminDeliverFailed: (id) => `⚠️ Anketa #${id}: hujjat yuborilmadi.`,
-  adminTahrirUsage: "Foydalanish: /tahrir 12 (anketa raqami PDF nusxasi izohida yozilgan).",
+  adminTahrirUsage: "Foydalanish: /tahrir — ro'yxat, /tahrir 12 — raqam bo'yicha, /tahrir Robiya — ism bo'yicha qidirish.",
   adminNoData: "Hali tayyor anketa yo'q.",
   adminNotFound: "Bunday tayyor anketa topilmadi.",
 };

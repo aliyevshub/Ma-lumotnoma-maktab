@@ -8,7 +8,7 @@ import { provider, adminIds } from "./payments/index.js";
 import { buildPdf } from "./pdf.js";
 import { buildXlsx } from "./export.js";
 import { ruleFix } from "./correct.js";
-import { inAlphabet, toNew } from "./alphabet.js";
+import { inAlphabet, toNew, toOld } from "./alphabet.js";
 import { T } from "./texts.js";
 
 export function createBot(env, fonts) {
@@ -142,7 +142,56 @@ export function createBot(env, fonts) {
       const btn = { text: `${i + 1}. ${label}`.slice(0, 40), callback_data: `af:${f.id}:${q.key}` };
       if (i % 2 === 0) rows.push([btn]); else rows[rows.length - 1].push(btn);
     });
+    rows.push([
+      { text: T.btnToOld, callback_data: `ax:${f.id}:latin` },
+      { text: T.btnToNew, callback_data: `ax:${f.id}:new` },
+    ]);
     await send(env, cq.message.chat.id, T.adminEditChoose(displayName(f), f.id), inlineKeyboard(rows));
+  }
+
+  // Butun hujjatni boshqa yozuvga o'tkazish: javoblar va PDF yorliqlari
+  async function adminConvert(cq, formId, alphabet) {
+    const f = await formById(env, formId);
+    if (!f || !f.paid) return tg(env, "answerCallbackQuery", { callback_query_id: cq.id, text: T.adminNotFound, show_alert: true });
+    await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
+    const conv = alphabet === "new" ? toNew : toOld;
+    const answers = { ...f.answers };
+    for (const q of QUESTIONS) {
+      if (q.type === "text" && answers[q.key]) answers[q.key] = conv(answers[q.key]);
+    }
+    await saveForm(env, f, { answers, alphabet });
+    await send(env, cq.message.chat.id, T.adminConverted(alphabet === "new"));
+    await sendAdminReview(f, cq.message.chat.id);
+  }
+
+  // /tahrir — ro'yxat (sahifalab) yoki ism bo'yicha qidiruv
+  const PAGE = 10;
+  const norm = (s) => toOld(String(s || "")).toLowerCase().replace(/[`‘’ʻʼ´]/g, "'");
+  function formButtons(forms) {
+    return forms.map((f) => [{ text: `${f.status === "checking" ? "⏳" : "✅"} #${f.id} ${displayName(f)}`.slice(0, 60), callback_data: `tv:${f.id}` }]);
+  }
+  async function listForms(chatId, offset, editMessage) {
+    const all = await allPaidForms(env); // id bo'yicha o'sish tartibida
+    if (!all.length) return send(env, chatId, T.listEmpty);
+    const sorted = all.reverse(); // eng yangisi birinchi
+    const page = sorted.slice(offset, offset + PAGE);
+    const rows = formButtons(page);
+    const nav = [];
+    if (offset > 0) nav.push({ text: T.btnPrev, callback_data: `tl:${Math.max(0, offset - PAGE)}` });
+    if (offset + PAGE < sorted.length) nav.push({ text: T.btnNext, callback_data: `tl:${offset + PAGE}` });
+    if (nav.length) rows.push(nav);
+    const text = T.listTitle(offset + 1, offset + page.length, sorted.length);
+    if (editMessage) {
+      return tg(env, "editMessageText", { chat_id: chatId, message_id: editMessage, text, reply_markup: { inline_keyboard: rows } });
+    }
+    return send(env, chatId, text, inlineKeyboard(rows));
+  }
+  async function searchForms(chatId, query) {
+    const q = norm(query);
+    const found = (await allPaidForms(env)).reverse().filter((f) =>
+      ["familiya", "ism", "sharif"].some((k) => norm(f.answers[k]).includes(q)));
+    if (!found.length) return send(env, chatId, T.searchEmpty(query));
+    return send(env, chatId, T.searchTitle(query, found.length), inlineKeyboard(formButtons(found.slice(0, 20))));
   }
 
   async function adminEditField(cq, formId, key) {
@@ -156,7 +205,7 @@ export function createBot(env, fonts) {
     await tg(env, "answerCallbackQuery", { callback_query_id: cq.id });
     const label = q.prompt ? q.prompt.split("\n")[0] : q.label;
     const text = q.type === "photo" ? T.adminEditAskPhoto(displayName(f), f.id)
-      : T.adminEditAsk(displayName(f), f.id, label, f.answers[key] || "—", f.alphabet === "new");
+      : T.adminEditAsk(displayName(f), f.id, label, toOld(f.answers[key] || "—"), toNew(f.answers[key] || "—"), f.alphabet === "new");
     await send(env, cq.message.chat.id, text, { reply_markup: { force_reply: true } });
   }
 
@@ -460,8 +509,9 @@ export function createBot(env, fonts) {
       if (await onAdminEditInput(msg)) return;
       if (cmd === "/tahrir") {
         const arg = rest.join(" ").trim();
-        const f = /^\d+$/.test(arg) ? await formById(env, Number(arg)) : null;
-        if (!arg) return send(env, chatId, T.adminTahrirUsage);
+        if (!arg) return listForms(chatId, 0);
+        if (!/^\d+$/.test(arg)) return searchForms(chatId, arg);
+        const f = await formById(env, Number(arg));
         if (!f || !f.paid) return send(env, chatId, T.adminNotFound);
         return sendAdminReview(f, chatId);
       }
@@ -528,9 +578,16 @@ export function createBot(env, fonts) {
       return data.startsWith("ws:") ? confirmWrite(cq, id) : startWrite(cq, id);
     }
 
-    if (/^(ae|as|ar):\d+$/.test(data) || /^af:\d+:\w+$/.test(data)) {
+    if (/^(ae|as|ar|tv|tl):\d+$/.test(data) || /^(af|ax):\d+:\w+$/.test(data)) {
       if (!isEditor(cq.from.id)) return done();
       const [kind, id, key] = data.split(":");
+      if (kind === "tl") { await done(); return listForms(chatId, Number(id), cq.message.message_id); }
+      if (kind === "tv") {
+        const f = await formById(env, Number(id));
+        await done();
+        return f && f.paid ? sendAdminReview(f, chatId) : send(env, chatId, T.adminNotFound);
+      }
+      if (kind === "ax") return adminConvert(cq, Number(id), key === "new" ? "new" : "latin");
       if (kind === "ae") return adminEditChoose(cq, Number(id));
       if (kind === "af") return adminEditField(cq, Number(id), key);
       await clearAdminState(cq.from.id);

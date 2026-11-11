@@ -271,7 +271,7 @@ try {
   });
 
   await step("oddiy foydalanuvchi admin tugmalarini bosa olmaydi", async () => {
-    for (const d of ["as:1", "ae:1", "af:1:ism", "ar:1"]) {
+    for (const d of ["as:1", "ae:1", "af:1:ism", "ar:1", "ax:1:new", "tv:1", "tl:0"]) {
       const c = await press(USER, d);
       assert.ok(!c.some((x) => x.method === "sendDocument" || (x.text || "").includes("tuzatasiz")), d);
     }
@@ -286,7 +286,8 @@ try {
   await step("admin bandni tuzatadi → yangi qoralama", async () => {
     has(await press(ADMIN, "ae:1", 557), "qaysi bandni tuzatasiz");
     const ask = await press(ADMIN, "af:1:orzular", 558);
-    has(ask, "Hozirgi: Shifokor bo'lish"); has(ask, "Anketa yozuvi: oddiy lotin");
+    has(ask, "Hozirgi (eski lotin): Shifokor bo'lish"); has(ask, "Hozirgi (yangi alifbo): Şifokor böliş");
+    has(ask, "Anketa yozuvi: oddiy lotin");
     const c = await say(ADMIN, "Shifokor bo'lish, ota-onasini xursand qilish");
     has(c, "Saqlandi"); has(c, "17. Kelajakdagi orzulari: Shifokor bo'lish, ota-onasini xursand qilish");
     assert.ok(c.some((x) => x.method === "sendDocument" && x.document?.file), "yangi qoralama kelmadi");
@@ -329,8 +330,24 @@ try {
   });
 
   await step("yuborilgan hujjatni tuzatish: /tahrir → tahrir → 📤 Qayta yuborish", async () => {
-    has(await say(ADMIN, "/tahrir"), "Foydalanish");
     has(await say(ADMIN, "/tahrir 99"), "topilmadi");
+    // ro'yxat va qidiruv (raqamsiz)
+    const l = await say(ADMIN, "/tahrir");
+    has(l, "Tayyor hujjatlar (1–1 / 1)");
+    assert.ok(JSON.stringify(l.at(-1).reply_markup).includes("tv:1"));
+    has(await press(ADMIN, "tv:1", 559), "Tekshirish: Aliyeva Shahzoda");
+    const sr = await say(ADMIN, "/tahrir şahzoda");
+    has(sr, "topildi: 1 ta"); assert.ok(JSON.stringify(sr.at(-1).reply_markup).includes("tv:1"));
+    has(await say(ADMIN, "/tahrir Zuhra"), "hech narsa topilmadi");
+    // butun hujjatni yangi alifboga va qaytib eski lotinga o'tkazish
+    const menu = await press(ADMIN, "ae:1", 559);
+    assert.ok(JSON.stringify(menu).includes("ax:1:new") && JSON.stringify(menu).includes("ax:1:latin"));
+    const cv = await press(ADMIN, "ax:1:new", 559);
+    has(cv, "yangi alifboga o'tkazildi"); has(cv, "Şarifi: Bahodirovna"); has(cv, "Navbahor MFY, Mustaqillik köçasi");
+    const cvDoc = cv.find((x) => x.method === "sendDocument" && x.document?.file);
+    assert.ok(execSync(`pdftotext "${cvDoc.document.file}" -`).toString().includes("Qaydlar uçun"));
+    const back = await press(ADMIN, "ax:1:latin", 559);
+    has(back, "eski lotin yozuviga o'tkazildi"); has(back, "Mustaqillik ko'chasi"); has(back, "Sharifi: Bahodirovna");
     const c = await say(ADMIN, "/tahrir 1");
     const draft = c.find((x) => x.method === "sendDocument");
     assert.ok(JSON.stringify(draft.reply_markup).includes("Qayta yuborish") && JSON.stringify(draft.reply_markup).includes("ar:1"));

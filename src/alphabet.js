@@ -12,3 +12,11 @@ export function toNew(s) {
 export function inAlphabet(s, alphabet) {
   return alphabet === "new" ? toNew(s) : s;
 }
+
+// Yangi alifbo → oddiy (eski) lotin: ş→sh, ç→ch, ö→o', ğ→g'
+const BACK = [["Ş", "Sh"], ["ş", "sh"], ["Ç", "Ch"], ["ç", "ch"], ["Ö", "O'"], ["ö", "o'"], ["Ğ", "G'"], ["ğ", "g'"]];
+export function toOld(s) {
+  let out = String(s);
+  for (const [a, b] of BACK) out = out.split(a).join(b);
+  return out;
+}

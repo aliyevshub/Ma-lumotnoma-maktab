@@ -38,7 +38,7 @@ export default {
             ...userCommands,
             { command: "stat", description: "Statistika (admin)" },
             { command: "export", description: "Excel ro'yxat (admin)" },
-            { command: "tahrir", description: "Anketani tuzatish: /tahrir 12 (admin)" },
+            { command: "tahrir", description: "Hujjatlar ro'yxati va tuzatish (admin)" },
           ],
         });
       }
@@ -50,7 +50,7 @@ export default {
       for (const id of String(env.EDITOR_ID || "").split(",").map((x) => x.trim()).filter(Boolean)) {
         await tg(env, "setMyCommands", {
           scope: { type: "chat", chat_id: Number(id) },
-          commands: [...userCommands, { command: "tahrir", description: "Anketani tuzatish: /tahrir 12" }],
+          commands: [...userCommands, { command: "tahrir", description: "Hujjatlar ro'yxati va tuzatish" }],
         });
       }
       const price = Number(env.PRICE || 5000).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
