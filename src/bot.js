@@ -1,5 +1,5 @@
 // Bot mantig'i: anketa, tekshirish, tahrirlash, PDF, admin buyruqlari
-import { tg, send, sendPdf, sendFile, inlineKeyboard, downloadFile } from "./telegram.js";
+import { tg, send, sendPdf, sendFile, inlineKeyboard, downloadFile, sendPhotoBytes } from "./telegram.js";
 import { QUESTIONS, MAX_LEN, MAX_LEN_LONG, questionIndex, parseDate, parsePhone, checkAnswer } from "./questions.js";
 import {
   currentForm, formById, createForm, saveForm, deleteForm, paidForms, allPaidForms, displayName,
@@ -26,7 +26,26 @@ export function createBot(env, fonts) {
   async function ask(form, idx) {
     const q = QUESTIONS[idx];
     const head = T.progress(idx + 1, QUESTIONS.length);
+    if (q.type === "photo") await sendPhotoSample(form.chat_id);
     await send(env, form.chat_id, `${head}\n\n${A(form, q.prompt || q.label)}`);
+  }
+
+  // 3x4 rasm namunasi: birinchi marta fayl yuklanadi, keyin Telegram file_id qayta ishlatiladi
+  async function sendPhotoSample(chatId) {
+    try {
+      const cached = await env.DB.prepare("SELECT value FROM settings WHERE key = 'sample_photo_id'").first();
+      if (cached?.value) {
+        const r = await tg(env, "sendPhoto", { chat_id: chatId, photo: cached.value, caption: T.photoSample, parse_mode: "HTML" });
+        if (r.ok) return;
+      }
+      if (!fonts.samplePhoto) return send(env, chatId, T.photoSample, { parse_mode: "HTML" });
+      const id = await sendPhotoBytes(env, chatId, fonts.samplePhoto, "namuna_3x4.jpg", T.photoSample, "HTML");
+      if (id) await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('sample_photo_id', ?)").bind(id).run();
+      else await send(env, chatId, T.photoSample, { parse_mode: "HTML" });
+    } catch (e) {
+      console.log("namuna rasm xatosi:", e?.message);
+      await send(env, chatId, T.photoSample, { parse_mode: "HTML" });
+    }
   }
 
   // Anketa doim yangi alifboda. Yozuv tanlanmagan eski anketa ham yangi alifboga o'tadi.
@@ -632,6 +651,7 @@ export function createBot(env, fonts) {
       if (questionIndex(key) < 0 || form.status !== "review") return done();
       await done();
       await saveForm(env, form, { edit_key: key });
+      if (QUESTIONS[questionIndex(key)].type === "photo") await sendPhotoSample(chatId);
       return send(env, chatId, T.editAsk(labelOf(form, key)));
     }
     if (data === "ok") {

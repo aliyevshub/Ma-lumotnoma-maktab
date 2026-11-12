@@ -41,6 +41,7 @@ const tgServer = http.createServer(async (req, res) => {
     if (method === "sendDocument") {
       result.document = { file_id: typeof payload.document === "string" ? payload.document : `pdf_${docN}` };
     }
+    if (method === "sendPhoto") result.photo = [{ file_id: typeof payload.photo === "string" ? payload.photo : `photo_${docN}` }];
   }
   res.setHeader("content-type", "application/json");
   res.end(JSON.stringify({ ok: true, result }));
@@ -177,7 +178,14 @@ try {
   await step("juda uzun javob rad etiladi", async () => {
     has(await say(USER, "a".repeat(200)), "juda uzun");
   });
-  await say(USER, ANSWERS[18]);
+  await step("rasm savolidan oldin namuna rasm yuboriladi", async () => {
+    const c = await say(USER, ANSWERS[18]);
+    const p = c.find((x) => x.method === "sendPhoto");
+    assert.ok(p, "namuna rasm yuborilmadi");
+    assert.equal(p.caption, "<b>3x4 rasm namunasi</b>");
+    assert.ok(p.photo?.size > 10000, "namuna fayli yuklanmadi");
+    has(c, "Savol 20/20");
+  });
 
   await step("rasm 3x4 so'rashda matn rad etiladi, foto qabul qilinadi", async () => {
     has(await say(USER, "rasm yo'q"), "rasm (foto)");
@@ -454,7 +462,9 @@ try {
 
   await step("xato rad etilgan chekni «Baribir tasdiqlash» bilan tasdiqlash", async () => {
     await say(USER2, "/start");
-    for (let i = 0; i < 19; i++) await say(USER2, ANSWERS[i].replace("Shahzoda", "Madina"));
+    for (let i = 0; i < 18; i++) await say(USER2, ANSWERS[i].replace("Shahzoda", "Madina"));
+    const sp = (await say(USER2, ANSWERS[18])).find((x) => x.method === "sendPhoto");
+    assert.equal(typeof sp.photo, "string", "namuna rasm keshdan (file_id) yuborilishi kerak");
     await photo(USER2, "face3");
     await press(USER2, "ok");
     const c = await photo(USER2, "receipt9");

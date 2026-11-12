@@ -1,12 +1,13 @@
 // Cloudflare Worker kirish nuqtasi: Telegram webhook
 import regular from "../fonts/LiberationSerif-Regular.ttf";
 import bold from "../fonts/LiberationSerif-Bold.ttf";
+import samplePhoto from "../assets/namuna_3x4.jpg";
 import { createBot } from "./bot.js";
 import { tg } from "./telegram.js";
 import { T } from "./texts.js";
 import { cleanup } from "./cleanup.js";
 
-const fonts = { regular, bold };
+const fonts = { regular, bold, samplePhoto }; // samplePhoto — 3x4 rasm namunasi
 
 export default {
   async fetch(request, env) {
