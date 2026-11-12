@@ -67,6 +67,7 @@ export const T = {
   needReceipt: "Iltimos, to'lov chekini rasm yoki fayl shaklida yuboring.",
   notReceipt: "❌ Yuborilgan rasm to'lov chekiga o'xshamaydi. Iltimos, to'lov chekini (skrinshot) yuboring.",
   codeAccepted: "✅ Bepul to'lov kodi qabul qilindi. Hujjat tekshirilmoqda va tez orada yuboriladi.",
+  codeNotEligible: "❌ Bepul kod faqat avval to'lov qilgan foydalanuvchilar uchun amal qiladi. Iltimos, to'lov chekini yuboring.",
   codeWrong: "❌ Kod noto'g'ri. Iltimos, to'lov chekini yuboring yoki kodni qayta tekshiring.",
   aiReceiptNote: (ai) => `🤖 Chekka o'xshaydi${ai.amount ? `: ${ai.amount}` : ""}${ai.card ? `, karta …${ai.card}` : ""}`,
   adminCodeUsed: (name, id) => `🎟 Bepul kod ishlatildi: ${name} (anketa #${id})`,

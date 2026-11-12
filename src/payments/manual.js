@@ -54,6 +54,11 @@ export async function onUserMessage(env, form, msg, hooks) {
   if (text) {
     const code = await currentCode(env);
     if (code && text.toLowerCase() === code.toLowerCase()) {
+      // kod faqat avval chek bilan to'lagan (admin tasdiqlagan) foydalanuvchiga ishlaydi
+      const paidBefore = await env.DB.prepare(
+        "SELECT 1 FROM payments WHERE chat_id = ? AND provider = 'manual' AND status = 'approved' LIMIT 1",
+      ).bind(form.chat_id).first();
+      if (!paidBefore) return send(env, form.chat_id, T.codeNotEligible);
       await env.DB.prepare(
         "INSERT INTO payments (form_id, chat_id, amount, provider, external_id, status, decided_at) VALUES (?, ?, 0, 'code', ?, 'approved', datetime('now'))",
       ).bind(form.id, form.chat_id, code).run();

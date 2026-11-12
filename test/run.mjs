@@ -617,8 +617,16 @@ try {
     for (let i = 0; i < 19; i++) await say(U, ANSWERS[i].replace("Shahzoda", "Lola"));
     await photo(U, "face8");
     await press(U, "ok");
+    // yangi foydalanuvchi (avval chek bilan to'lamagan) kodni ishlata olmaydi
+    has(await say(U, "yangi777"), "faqat avval to'lov qilgan foydalanuvchilar");
+    // avval chek bilan to'lagan foydalanuvchi (USER2) — yangi anketada kod ishlaydi
+    const U2 = USER2;
+    await say(U2, "/yangi");
+    for (let i = 0; i < 19; i++) await say(U2, ANSWERS[i].replace("Shahzoda", "Lola"));
+    await photo(U2, "face8");
+    await press(U2, "ok");
     const before = texts(await say(ADMIN, "/stat")).match(/Jami: <b>([\d ]+)<\/b> so'm/)[1];
-    const c = await say(U, "yangi777");
+    const c = await say(U2, "yangi777");
     has(c, "Bepul to'lov kodi qabul qilindi");
     assert.ok(!texts(c.filter((x) => Number(x.chat_id) === U)).includes("To'lov tasdiqlandi"), "ortiqcha xabar");
     has(c, "Bepul kod ishlatildi: Aliyeva Lola"); has(c, "Tekshirish: Aliyeva Lola");
