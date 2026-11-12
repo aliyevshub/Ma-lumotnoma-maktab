@@ -27,6 +27,13 @@ export const T = {
   badText: "Iltimos, javobni to'g'ri kiriting.",
   noCyrillic: "Iltimos, javobni lotin harflarida yozing (masalan: Shahzoda, Toshkent).",
   needPhoto: "Iltimos, 3x4 o'lchamdagi suratni rasm (foto) shaklida yuboring.",
+  // 3x4 rasm namunasi ostidagi ko'rsatma (HTML)
+  photoSample:
+    "📷 <b>Rasm 3x4</b> — namunadagidek bo'lsin:\n" +
+    "✅ oq yoki och rangli fon\n" +
+    "✅ yelkagacha, yuz to'g'riga qaragan\n" +
+    "✅ telefon tik (vertikal) ushlangan, yorug' joyda\n" +
+    "❌ skrinshot, guruh rasmi yoki uzoqdan olingan rasm emas",
   tooLong: (n) => `Javob juda uzun. Iltimos, ${n} belgidan oshirmang.`,
   reviewTitle: "Kiritilgan ma'lumotlarni tekshiring:",
   photoAttached: "biriktirilgan ✅",

@@ -62,3 +62,17 @@ export async function downloadFile(env, fileId) {
   if (!res.ok) return null;
   return new Uint8Array(await res.arrayBuffer());
 }
+
+// Rasmni (baytlar) yuborish; Telegram file_id qaytaradi (keyin qayta ishlatish uchun)
+export async function sendPhotoBytes(env, chatId, bytes, filename, caption, parseMode) {
+  const form = new FormData();
+  form.append("chat_id", String(chatId));
+  if (caption) form.append("caption", caption);
+  if (parseMode) form.append("parse_mode", parseMode);
+  form.append("photo", new Blob([bytes], { type: "image/jpeg" }), filename);
+  const res = await fetch(`${base(env)}/bot${env.BOT_TOKEN}/sendPhoto`, { method: "POST", body: form });
+  const data = await res.json().catch(() => ({ ok: false }));
+  if (!data.ok) { console.log("sendPhoto failed:", JSON.stringify(data).slice(0, 300)); return null; }
+  const sizes = data.result?.photo || [];
+  return sizes.length ? sizes[sizes.length - 1].file_id : null;
+}
