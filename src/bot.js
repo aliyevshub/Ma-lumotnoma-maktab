@@ -119,11 +119,11 @@ export function createBot(env, fonts) {
 
   // To'lov tasdiqlanganda (har qanday to'lov usulidan): PDF darhol emas —
   // avval admin tekshiradi ("checking"), 📤 bosilgandan keyin foydalanuvchiga ketadi
-  async function onPaid(formId) {
+  async function onPaid(formId, opts = {}) {
     const form = await formById(env, formId);
     if (!form) return;
     await saveForm(env, form, { paid: 1, status: "checking", edit_key: null });
-    if (!isAdmin(form.chat_id)) await send(env, form.chat_id, T.approvedChecking);
+    if (!isAdmin(form.chat_id) && !opts.quiet) await send(env, form.chat_id, T.approvedChecking);
     await sendAdminReview(form);
   }
 
@@ -402,10 +402,11 @@ export function createBot(env, fonts) {
       `SELECT COALESCE(SUM(amount),0) total,
          COALESCE(SUM(CASE WHEN date(COALESCE(decided_at, created_at), '+5 hours') = date('now', '+5 hours') THEN amount END),0) today,
          COALESCE(SUM(CASE WHEN COALESCE(decided_at, created_at) >= datetime('now', '-7 days') THEN amount END),0) week
-       FROM payments WHERE status = 'approved' AND provider <> 'admin'`);
+       FROM payments WHERE status = 'approved' AND provider NOT IN ('admin', 'code')`);
+    const free = await one("SELECT COUNT(*) n FROM payments WHERE status = 'approved' AND provider = 'code'");
     const best = await one(
       `SELECT strftime('%d.%m', COALESCE(decided_at, created_at), '+5 hours') day, COUNT(*) n
-       FROM payments WHERE status = 'approved' AND provider <> 'admin' GROUP BY day ORDER BY n DESC LIMIT 1`);
+       FROM payments WHERE status = 'approved' AND provider NOT IN ('admin', 'code') GROUP BY day ORDER BY n DESC LIMIT 1`);
     const now = new Date(Date.now() + 5 * 3600e3).toISOString();
     return {
       now: `${now.slice(8, 10)}.${now.slice(5, 7)}.${now.slice(0, 4)}, ${now.slice(11, 19)}`,
@@ -414,6 +415,7 @@ export function createBot(env, fonts) {
       filling: f.filling || 0, payment: f.payment || 0, pending: f.pending || 0, checking: checkingAll.n || 0,
       money: { today: m.today, week: m.week, total: m.total },
       best: best?.n ? best : null,
+      freeCode: free.n || 0,
     };
   }
 
@@ -442,6 +444,20 @@ export function createBot(env, fonts) {
       } catch (e) {
         await send(env, chatId, `⚠️ ${e?.message || e}`);
       }
+      return true;
+    }
+    if (cmd === "/yangikod") {
+      const code = arg.trim();
+      if (!/^[\p{L}\d]{3,32}$/u.test(code)) { await send(env, chatId, T.adminCodeUsage); return true; }
+      await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('promo_code', ?)").bind(code).run();
+      await send(env, chatId, T.adminCodeSet(code), { parse_mode: "HTML" });
+      return true;
+    }
+    if (cmd === "/kod") {
+      const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'promo_code'").first();
+      const code = row?.value || null;
+      const n = code ? (await env.DB.prepare("SELECT COUNT(*) n FROM payments WHERE provider = 'code' AND external_id = ?").bind(code).first()).n : 0;
+      await send(env, chatId, T.adminCodeInfo(code, n), { parse_mode: "HTML" });
       return true;
     }
     if (cmd === "/admin") { await send(env, chatId, T.adminHelp); return true; }
@@ -590,7 +606,7 @@ export function createBot(env, fonts) {
       case "review": return showReview(form);
       case "payment":
         if (isAdmin(msg.from?.id)) return adminFree(form);
-        return provider(env).onUserMessage(env, form, msg);
+        return provider(env).onUserMessage(env, form, msg, { onPaid });
       case "pending": return send(env, chatId, T.waitAdmin);
       case "checking": return send(env, chatId, T.waitCheck);
       default: return send(env, chatId, T.menuDone);

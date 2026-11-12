@@ -13,6 +13,10 @@ fallthrough = true
 [triggers]
 crons = ["17 2 * * *"]
 
+# Cloudflare Workers AI — to'lov chekini tekshirish uchun
+[ai]
+binding = "AI"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "malumotnoma"

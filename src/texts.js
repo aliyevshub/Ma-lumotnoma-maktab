@@ -65,6 +65,16 @@ export const T = {
     "To'lov cheki tekshirilmoqda. Ma'lumotnoma tekshiruvdan so'ng yuboriladi. " +
     "Tekshiruv bir necha soat davom etishi mumkin.",
   needReceipt: "Iltimos, to'lov chekini rasm yoki fayl shaklida yuboring.",
+  notReceipt: "❌ Yuborilgan rasm to'lov chekiga o'xshamaydi. Iltimos, to'lov chekini (skrinshot) yuboring.",
+  codeAccepted: "✅ Bepul to'lov kodi qabul qilindi. Hujjat tekshirilmoqda va tez orada yuboriladi.",
+  codeWrong: "❌ Kod noto'g'ri. Iltimos, to'lov chekini yuboring yoki kodni qayta tekshiring.",
+  aiReceiptNote: (ai) => `🤖 Chekka o'xshaydi${ai.amount ? `: ${ai.amount}` : ""}${ai.card ? `, karta …${ai.card}` : ""}`,
+  adminCodeUsed: (name, id) => `🎟 Bepul kod ishlatildi: ${name} (anketa #${id})`,
+  adminCodeSet: (code) => `✅ Yangi bepul kod o'rnatildi: <code>${code}</code>\nEski kod endi ishlamaydi.`,
+  adminCodeInfo: (code, n) => code
+    ? `🎟 Hozirgi bepul kod: <code>${code}</code>\nShu kod bilan foydalanilgan: ${n} marta.\n\nYangilash: /yangikod YANGIKOD`
+    : "Bepul kod o'rnatilmagan.\nO'rnatish: /yangikod YANGIKOD",
+  adminCodeUsage: "Foydalanish: /yangikod MAKTAB2026 (faqat harf va raqam, 3–32 belgi).",
   approved: "To'lov tasdiqlandi ✅ Ma'lumotnoma quyida ilova qilingan:",
   approvedChecking: "To'lov tasdiqlandi ✅ Hujjat tekshirilmoqda va tez orada yuboriladi.",
   waitCheck: "Hujjatingiz tekshirilmoqda va tez orada yuboriladi.",
@@ -132,11 +142,12 @@ export const T = {
       `Bugun: <b>${fmt(s.money.today)}</b> so'm\n` +
       `7 kun: <b>${fmt(s.money.week)}</b> so'm\n` +
       `Jami: <b>${fmt(s.money.total)}</b> so'm` +
+      (s.freeCode ? `\n🎟 Bepul kod bilan: <b>${s.freeCode}</b> ta` : "") +
       (s.best ? `\n\n🏆 <b>Eng faol kun:</b> ${s.best.day} — ${s.best.n} ta to'lov` : "");
   },
   btnRefresh: "🔄 Yangilash",
   adminHelp:
-    "Admin buyruqlari:\n/stat — statistika (voronka, tushum)\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i\n/tahrir 12 — 12-raqamli anketani tuzatish va qayta yuborish",
+    "Admin buyruqlari:\n/stat — statistika (voronka, tushum)\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i\n/tahrir 12 — 12-raqamli anketani tuzatish va qayta yuborish\n/kod — bepul to'lov kodini ko'rish\n/yangikod KOD — yangi bepul kod",
   // Admin → foydalanuvchi xabarlari
   btnWrite: "✉️ Foydalanuvchiga yozish",
   btnApproveAnyway: "✅ Baribir tasdiqlash",

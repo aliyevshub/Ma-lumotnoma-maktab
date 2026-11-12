@@ -6,6 +6,7 @@ import { createBot } from "./bot.js";
 import { tg } from "./telegram.js";
 import { T } from "./texts.js";
 import { cleanup } from "./cleanup.js";
+import { checkReceipt } from "./receipt.js";
 
 const fonts = { regular, bold, samplePhoto }; // samplePhoto — 3x4 rasm namunasi
 
@@ -40,6 +41,8 @@ export default {
             { command: "stat", description: "Statistika (admin)" },
             { command: "export", description: "Excel ro'yxat (admin)" },
             { command: "tahrir", description: "Hujjatlar ro'yxati va tuzatish (admin)" },
+            { command: "kod", description: "Bepul to'lov kodini ko'rish (admin)" },
+            { command: "yangikod", description: "Yangi bepul kod: /yangikod KOD (admin)" },
           ],
         });
       }
@@ -60,6 +63,12 @@ export default {
       const n1 = await tg(env, "setMyName", { name: T.botName });
       const me = await tg(env, "getMe");
       return Response.json({ webhook: r, description: d1.ok, short_description: d2.ok, name: n1.ok ? true : n1.description || false, bot: me.result?.username || null });
+    }
+    // Chek AI tekshiruvini sinash: POST /receipt-test?key=<WEBHOOK_SECRET>, tanasi — rasm
+    if (request.method === "POST" && url.pathname === "/receipt-test") {
+      if (!env.WEBHOOK_SECRET || url.searchParams.get("key") !== env.WEBHOOK_SECRET) return new Response("forbidden", { status: 403 });
+      const bytes = new Uint8Array(await request.arrayBuffer());
+      return Response.json(await checkReceipt(env, bytes));
     }
     if (request.method === "GET") return new Response("Ma'lumotnoma bot ishlayapti ✅");
     if (request.method !== "POST" || url.pathname !== "/webhook") return new Response("Not found", { status: 404 });

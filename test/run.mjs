@@ -13,10 +13,18 @@ const FACE = readFileSync("test/face.jpg");
 // ---------- Soxta Telegram ----------
 const calls = [];
 let msgId = 100, docN = 0;
+let aiReceipt = true; // soxta AI javobi: rasm chekmi?
 const tgServer = http.createServer(async (req, res) => {
   const chunks = [];
   for await (const c of req) chunks.push(c);
   const body = Buffer.concat(chunks);
+  if (req.url === "/ai-mock") {
+    res.setHeader("content-type", "application/json");
+    // aiReceipt: true — chek; "half" — model "chek emas" desa ham summa o'qilgan; false — chek emas
+    res.end(JSON.stringify(aiReceipt === true ? { receipt: true, amount: "5 000 so'm", card: "9012" }
+      : aiReceipt === "half" ? { receipt: false, amount: "5 000 so'm", card: null } : { receipt: false, amount: null, card: null }));
+    return;
+  }
   if (req.url.startsWith("/file/")) { res.end(FACE); return; }
   const method = req.url.split("/").pop();
   let payload = {};
@@ -103,7 +111,7 @@ execSync(`npx wrangler d1 migrations apply malumotnoma --local --persist-to ${ST
 await new Promise((r) => tgServer.listen(TG_PORT, r));
 const vars = {
   TG_API_BASE: `http://127.0.0.1:${TG_PORT}`, BOT_TOKEN: "TEST", ADMIN_ID: String(ADMIN), EDITOR_ID: String(EDITOR),
-  CARD_NUMBER: "8600 1234 5678 9012", CARD_OWNER: "ALIYEV A.", WEBHOOK_SECRET: SECRET,
+  RECEIPT_AI_MOCK: `http://127.0.0.1:${TG_PORT}/ai-mock`, CARD_NUMBER: "8600 1234 5678 9012", CARD_OWNER: "ALIYEV A.", WEBHOOK_SECRET: SECRET,
 };
 const wk = spawn("npx", ["wrangler", "dev", "--local", "--test-scheduled", "--port", String(WK_PORT), "--persist-to", STATE,
   ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])], { stdio: ["ignore", "pipe", "pipe"], detached: true });
@@ -228,6 +236,37 @@ try {
     has(await say(USER, "to'lladim"), "chekini rasm yoki fayl");
   });
 
+  await step("chek bo'lmagan rasm rad etiladi (AI)", async () => {
+    aiReceipt = false;
+    const c = await photo(USER, "selfi1");
+    has(c, "to'lov chekiga o'xshamaydi");
+    assert.ok(!c.some((x) => Number(x.chat_id) === ADMIN), "chek bo'lmagan rasm adminga ketmasligi kerak");
+    aiReceipt = true;
+  });
+
+  await step("chekka o'xshash rasm (summa o'qilgan) qabul qilinadi", async () => {
+    aiReceipt = "half";
+    const c = await photo(USER, "receiptHalf");
+    has(c, "To'lov cheki qabul qilindi");
+    const toAdmin = c.find((x) => x.method === "sendPhoto" && Number(x.chat_id) === ADMIN);
+    const pid = toAdmin.reply_markup.inline_keyboard[0][1].callback_data.split(":")[1];
+    // testning keyingi qadamlari uchun: bu chekni rad etib, foydalanuvchini to'lov bosqichiga qaytaramiz
+    await press(ADMIN, `rj:${pid}`, 991);
+    await say(ADMIN, "Sinov");
+    aiReceipt = true;
+  });
+
+  await step("bepul kod: noto'g'ri kod, keyin admin kod o'rnatadi", async () => {
+    has(await say(ADMIN, "/kod"), "o'rnatilmagan");
+    has(await say(ADMIN, "/yangikod a"), "Foydalanish");
+    has(await say(ADMIN, "/yangikod MAKTAB2026"), "MAKTAB2026");
+    has(await say(USER, "NOTOGRI1"), "Kod noto'g'ri");
+    has(await say(ADMIN, "/yangikod YANGI777"), "Eski kod endi ishlamaydi");
+    has(await say(ADMIN, "/kod"), "YANGI777");
+    has(await say(USER, "maktab2026"), "Kod noto'g'ri"); // eski kod ishlamaydi
+    assert.ok(!texts(await say(USER, "/yangikod XAKER123")).includes("o'rnatildi"), "oddiy foydalanuvchi kod o'rnata olmasligi kerak");
+  });
+
   let paymentId;
   await step("chek → adminga tugmalar bilan boradi", async () => {
     const c = await photo(USER, "receipt1");
@@ -236,6 +275,7 @@ try {
     assert.ok(toAdmin, "admin chekni olmadi");
     assert.equal(toAdmin.photo, "receipt1");
     has([toAdmin], "Aliyeva Şahzoda");
+    has([toAdmin], "🤖 Chekka o'xshaydi: 5 000 so'm, karta …9012");
     const btns = toAdmin.reply_markup.inline_keyboard[0];
     assert.deepEqual(btns.map((b) => b.text), ["✅ Tasdiqlash", "❌ Rad etish"]);
     paymentId = btns[0].callback_data.split(":")[1];
@@ -571,6 +611,23 @@ try {
     has(c, "30 kundan so'ng tizimdan o'chiriladi");
   });
 
+  await step("bepul kod bilan to'lov: tekshiruvga tushadi, tushumga qo'shilmaydi", async () => {
+    const U = 666;
+    await say(U, "/start");
+    for (let i = 0; i < 19; i++) await say(U, ANSWERS[i].replace("Shahzoda", "Lola"));
+    await photo(U, "face8");
+    await press(U, "ok");
+    const before = texts(await say(ADMIN, "/stat")).match(/Jami: <b>([\d ]+)<\/b> so'm/)[1];
+    const c = await say(U, "yangi777");
+    has(c, "Bepul to'lov kodi qabul qilindi");
+    assert.ok(!texts(c.filter((x) => Number(x.chat_id) === U)).includes("To'lov tasdiqlandi"), "ortiqcha xabar");
+    has(c, "Bepul kod ishlatildi: Aliyeva Lola"); has(c, "Tekshirish: Aliyeva Lola");
+    const st = await say(ADMIN, "/stat");
+    has(st, `Jami: <b>${before}</b> so'm`); has(st, "Bepul kod bilan: <b>1</b> ta");
+    has(await say(ADMIN, "/kod"), "foydalanilgan: 1 marta");
+    await press(ADMIN, `as:${asId(c)}`, 960);
+  });
+
   await step("eski (oddiy lotindagi) anketani yangi alifboga o'tkazish", async () => {
     execSync(`npx wrangler d1 execute malumotnoma --local --persist-to ${STATE} --command "UPDATE forms SET alphabet = 'latin', answers = json_set(answers, '$.sharif', 'Bahodir o''g''li', '$.manzil', 'Toshkent shahar, Mustaqillik ko''chasi') WHERE chat_id = ${USER2} AND paid = 1;"`, { stdio: "ignore", env: { ...process.env, CI: "1" } });
     const f = await say(ADMIN, "/tahrir Madina");
@@ -592,7 +649,7 @@ try {
     // statistika uchun summa qoladi
     const st = await say(ADMIN, "/stat");
     has(st, "Jami: <b>10 000</b> so'm");
-    has(st, "Jami: <b>4</b>"); // tozalashdan keyin ham foydalanuvchilar hisobi saqlanadi
+    has(st, "Jami: <b>5</b>"); // tozalashdan keyin ham foydalanuvchilar hisobi saqlanadi
     has(await say(USER2, "/mening"), "Ma'lumotnoma");
   });
 

@@ -1,11 +1,12 @@
 // Qo'lda to'lov: kartaga o'tkazish → chek rasmi → admin tasdiqlaydi.
 // Keyinchalik payme.js / stars.js xuddi shu interfeys bilan qo'shiladi:
 //   start(env, form)                 — to'lovni boshlash (foydalanuvchiga ko'rsatma)
-//   onUserMessage(env, form, msg)    — "payment" holatidagi xabar (chek)
+//   onUserMessage(env, form, msg, hooks) — "payment" holatidagi xabar (chek yoki bepul kod)
 //   onAdminCallback(env, cq, data, hooks) — admin tugmalari
 //   onAdminText(env, msg, hooks)     — admin rad etish sababi
 // To'lov tasdiqlanganda hooks.onPaid(formId) chaqiriladi.
-import { tg, send, inlineKeyboard } from "../telegram.js";
+import { tg, send, inlineKeyboard, downloadFile } from "../telegram.js";
+import { checkReceipt } from "../receipt.js";
 import { saveForm, formById, displayName } from "../db.js";
 import { T } from "../texts.js";
 
@@ -36,14 +37,43 @@ function receiptFrom(msg) {
   if (msg.photo?.length) return { kind: "photo", fileId: msg.photo[msg.photo.length - 1].file_id };
   if (msg.document) {
     const m = msg.document.mime_type || "";
-    if (m.startsWith("image/") || m === "application/pdf") return { kind: "document", fileId: msg.document.file_id };
+    if (m.startsWith("image/")) return { kind: "document", fileId: msg.document.file_id, image: true };
+    if (m === "application/pdf") return { kind: "document", fileId: msg.document.file_id };
   }
   return null;
 }
 
-export async function onUserMessage(env, form, msg) {
+// Bepul to'lov kodi (admin /yangikod bilan o'rnatadi; ishlatish soni cheklanmaydi)
+export async function currentCode(env) {
+  const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'promo_code'").first();
+  return row?.value || null;
+}
+
+export async function onUserMessage(env, form, msg, hooks) {
+  const text = (msg.text || "").trim();
+  if (text) {
+    const code = await currentCode(env);
+    if (code && text.toLowerCase() === code.toLowerCase()) {
+      await env.DB.prepare(
+        "INSERT INTO payments (form_id, chat_id, amount, provider, external_id, status, decided_at) VALUES (?, ?, 0, 'code', ?, 'approved', datetime('now'))",
+      ).bind(form.id, form.chat_id, code).run();
+      await send(env, form.chat_id, T.codeAccepted);
+      for (const a of adminIds(env)) await send(env, a, T.adminCodeUsed(displayName(form), form.id));
+      return hooks?.onPaid?.(form.id, { quiet: true });
+    }
+    return send(env, form.chat_id, code ? T.codeWrong : T.needReceipt);
+  }
+
   const r = receiptFrom(msg);
   if (!r) return send(env, form.chat_id, T.needReceipt);
+
+  // rasm — sun'iy intellekt chekka o'xshashini tekshiradi (PDF chek tekshirilmaydi)
+  let ai = { verdict: "unknown" };
+  if (r.kind === "photo" || r.image) {
+    const bytes = await downloadFile(env, r.fileId);
+    ai = await checkReceipt(env, bytes);
+    if (ai.verdict === "not_receipt") return send(env, form.chat_id, T.notReceipt);
+  }
 
   const p = await env.DB.prepare(
     "INSERT INTO payments (form_id, chat_id, amount, provider, receipt_file_id) VALUES (?, ?, ?, 'manual', ?) RETURNING *",
@@ -54,7 +84,8 @@ export async function onUserMessage(env, form, msg) {
   const u = msg.from || {};
   const who = [u.first_name, u.last_name].filter(Boolean).join(" ") +
     (u.username ? ` (@${u.username})` : "") + ` [${form.chat_id}]`;
-  const caption = T.adminReceipt({ ...p, amount: price(env) }, { id: form.id, name: displayName(form) }, who);
+  const caption = T.adminReceipt({ ...p, amount: price(env) }, { id: form.id, name: displayName(form) }, who) +
+    (ai.verdict === "receipt" ? `\n${T.aiReceiptNote(ai)}` : "");
   const kb = inlineKeyboard([
     [{ text: T.btnApprove, callback_data: `ap:${p.id}` }, { text: T.btnReject, callback_data: `rj:${p.id}` }],
     [{ text: T.btnWrite, callback_data: `w:${form.id}` }],
