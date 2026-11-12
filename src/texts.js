@@ -106,21 +106,37 @@ export const T = {
   adminAlready: "Bu chek bo'yicha qaror allaqachon qabul qilingan.",
   adminCancelReason: "Rad etish bekor qilindi.",
   adminPdfCopy: (name) => `📄 Nusxa: ${name}`,
-  adminStats: (s) =>
-    `📊 <b>Statistika</b>\n\n` +
-    `👥 <b>Foydalanuvchilar</b>\n` +
-    `Jami botga kirganlar: ${s.users.total}\n` +
-    `Bugun: ${s.users.today}\n` +
-    `Oxirgi 7 kun: ${s.users.week}\n\n` +
-    `📝 <b>Anketalar</b>\n` +
-    `To'ldirilmoqda: ${s.filling}\n` +
-    `To'lov kutilmoqda: ${s.payment}\n` +
-    `Chek tekshiruvda: ${s.pending}\n` +
-    `Admin tekshiruvida: ${s.checking}\n` +
-    `Tayyor (to'langan): ${s.done}\n\n` +
-    `💰 <b>Jami tushum:</b> ${s.sum} so'm`,
+  // /stat — chiroyli statistika (HTML)
+  adminStats: (s) => {
+    const fmt = (n) => Number(n || 0).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
+    const max = Math.max(1, s.funnel.started);
+    const bar = (n) => { const k = Math.round((n / max) * 10); return "▰".repeat(k) + "▱".repeat(10 - k); };
+    const row = (name, n) => `<code>${name.padEnd(10, " ")}</code> ${bar(n)} <b>${n}</b>`;
+    const conv = s.funnel.started ? Math.round((s.funnel.paid / s.funnel.started) * 100) : 0;
+    return `📊 <b>MA'LUMOTNOMA BOT — STATISTIKA</b>\n` +
+      `🕐 ${s.now}\n\n` +
+      `👥 <b>Foydalanuvchilar</b>\n` +
+      `Jami: <b>${s.users.total}</b> | Bugun: <b>+${s.users.today}</b> | 7 kun: <b>+${s.users.week}</b>\n\n` +
+      `📈 <b>Yo'l (oxirgi 30 kun)</b>\n` +
+      `${row("Boshlagan", s.funnel.started)}\n` +
+      `${row("To'ldirgan", s.funnel.filled)}\n` +
+      `${row("To'lagan", s.funnel.paid)}\n` +
+      `${row("PDF olgan", s.funnel.delivered)}\n` +
+      `🎯 To'lov konversiyasi: <b>${conv}%</b>\n\n` +
+      `📝 <b>Hozir</b>\n` +
+      `✍️ To'ldirilmoqda: ${s.filling}\n` +
+      `💳 To'lov kutilmoqda: ${s.payment}\n` +
+      `🧾 Chek tekshiruvda: ${s.pending}${s.pending ? " ⚠️" : ""}\n` +
+      `🔎 Sizning tekshiruvingizda: <b>${s.checking}</b>${s.checking ? " ⚠️" : ""}\n\n` +
+      `💰 <b>Tushum</b>\n` +
+      `Bugun: <b>${fmt(s.money.today)}</b> so'm\n` +
+      `7 kun: <b>${fmt(s.money.week)}</b> so'm\n` +
+      `Jami: <b>${fmt(s.money.total)}</b> so'm` +
+      (s.best ? `\n\n🏆 <b>Eng faol kun:</b> ${s.best.day} — ${s.best.n} ta to'lov` : "");
+  },
+  btnRefresh: "🔄 Yangilash",
   adminHelp:
-    "Admin buyruqlari:\n/stat — statistika\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i\n/tahrir 12 — 12-raqamli anketani tuzatish va qayta yuborish",
+    "Admin buyruqlari:\n/stat — statistika (voronka, tushum)\n/export — Excel ro'yxat\n/pdf 12 — 12-raqamli anketa PDF'i\n/tahrir 12 — 12-raqamli anketani tuzatish va qayta yuborish",
   // Admin → foydalanuvchi xabarlari
   btnWrite: "✉️ Foydalanuvchiga yozish",
   btnApproveAnyway: "✅ Baribir tasdiqlash",

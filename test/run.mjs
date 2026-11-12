@@ -367,12 +367,19 @@ try {
 
   await step("/stat — statistika (faqat admin)", async () => {
     const c = await say(ADMIN, "/stat");
-    has(c, "Tayyor (to'langan): 1"); has(c, "<b>Jami tushum:</b> 5 000 so'm");
+    has(c, "<b>1</b>"); has(c, "Jami: <b>5 000</b> so'm"); has(c, "Bugun: <b>5 000</b> so'm");
+    has(c, "To'lov konversiyasi: <b>100%</b>"); has(c, "Eng faol kun:");
     // foydalanuvchilar: USER (admin hisoblanmaydi)
-    has(c, "Jami botga kirganlar: 1"); has(c, "Bugun: 1"); has(c, "Oxirgi 7 kun: 1");
-    assert.equal(c.find((x) => x.text?.includes("Statistika")).parse_mode, "HTML");
+    has(c, "Jami: <b>1</b> | Bugun: <b>+1</b> | 7 kun: <b>+1</b>");
+    const sm = c.find((x) => x.text?.includes("STATISTIKA"));
+    assert.equal(sm.parse_mode, "HTML");
+    assert.equal(sm.reply_markup.inline_keyboard[0][0].callback_data, "st");
+    // 🔄 Yangilash — xabarni yangilaydi
+    const rf = await press(ADMIN, "st", 990);
+    assert.ok(rf.some((x) => x.method === "editMessageText" && x.text.includes("STATISTIKA")));
+    assert.ok(!(await press(USER, "st")).some((x) => x.method === "editMessageText"), "oddiy foydalanuvchi yangilay olmasligi kerak");
     // oddiy foydalanuvchiga statistika chiqmaydi
-    assert.ok(!texts(await say(USER, "/stat")).includes("Statistika"));
+    assert.ok(!texts(await say(USER, "/stat")).includes("STATISTIKA"));
   });
 
   await step("/export — Excel fayl", async () => {
@@ -404,7 +411,7 @@ try {
     assert.ok(!texts(c).includes("karta raqamiga"), "adminga karta ko'rsatildi");
     has(c, "Tekshirish:");
     const st = await say(ADMIN, "/stat");
-    has(st, "<b>Jami tushum:</b> 5 000 so'm"); has(st, "Admin tekshiruvida: 1");
+    has(st, "Jami: <b>5 000</b> so'm"); has(st, "Sizning tekshiruvingizda: <b>1</b> ⚠️");
     const c2 = await press(ADMIN, `as:${asId(c)}`, 700);
     has(c2, "Ma'lumotnoma tayyor");
     const docs = c2.filter((x) => x.method === "sendDocument" && Number(x.chat_id) === ADMIN);
@@ -492,7 +499,7 @@ try {
     const edCopy = c3.find((x) => x.method === "sendDocument" && Number(x.chat_id) === EDITOR);
     assert.ok(JSON.stringify(edCopy.reply_markup).includes("ae:") && !JSON.stringify(edCopy.reply_markup).includes('"w:'));
     // muharrir: chek, statistika, yozish — yo'q; /tahrir — bor
-    assert.ok(!texts(await say(EDITOR, "/stat")).includes("Statistika"));
+    assert.ok(!texts(await say(EDITOR, "/stat")).includes("STATISTIKA"));
     assert.ok(!(await press(EDITOR, `w:${fid}`, 805)).some((x) => (x.text || "").includes("Xabar kimga")));
     assert.ok(!(await press(EDITOR, `ap:${pid}`, 806)).some((x) => (x.text || "").includes("tasdiqlandi")));
     assert.ok((await say(EDITOR, `/tahrir ${fid}`)).some((x) => x.method === "sendDocument"));
@@ -584,8 +591,8 @@ try {
     has(await say(USER, "/mening"), "mavjud emas");
     // statistika uchun summa qoladi
     const st = await say(ADMIN, "/stat");
-    has(st, "<b>Jami tushum:</b> 10 000 so'm");
-    has(st, "Jami botga kirganlar: 4"); // tozalashdan keyin ham foydalanuvchilar hisobi saqlanadi
+    has(st, "Jami: <b>10 000</b> so'm");
+    has(st, "Jami: <b>4</b>"); // tozalashdan keyin ham foydalanuvchilar hisobi saqlanadi
     has(await say(USER2, "/mening"), "Ma'lumotnoma");
   });
 

@@ -376,31 +376,52 @@ export function createBot(env, fonts) {
     }
   }
 
+  // ---------- Statistika ----------
+  async function collectStats() {
+    const staff = reviewers().map(Number); // admin va muharrirlar hisobga olinmaydi
+    const notStaff = staff.length ? `chat_id NOT IN (${staff.map(() => "?").join(",")})` : "1=1";
+    const one = (sql, ...b) => env.DB.prepare(sql).bind(...b).first();
+    // kunlar Toshkent vaqti bo'yicha (UTC+5)
+    const u = await one(
+      `SELECT COUNT(*) total,
+         SUM(date(first_seen, '+5 hours') = date('now', '+5 hours')) today,
+         SUM(first_seen >= datetime('now', '-7 days')) week
+       FROM users WHERE ${notStaff}`, ...staff);
+    const f = await one(
+      `SELECT COUNT(*) started,
+         SUM(status IN ('review','payment','pending','checking','done')) filled,
+         SUM(paid = 1) paid,
+         SUM(status = 'done' AND pdf_file_id IS NOT NULL) delivered,
+         SUM(paid = 0 AND status IN ('filling','review')) filling,
+         SUM(paid = 0 AND status = 'payment') payment,
+         SUM(paid = 0 AND status = 'pending') pending,
+         SUM(status = 'checking') checking
+       FROM forms WHERE ${notStaff}`, ...staff);
+    const checkingAll = await one("SELECT COUNT(*) n FROM forms WHERE status = 'checking'");
+    const m = await one(
+      `SELECT COALESCE(SUM(amount),0) total,
+         COALESCE(SUM(CASE WHEN date(COALESCE(decided_at, created_at), '+5 hours') = date('now', '+5 hours') THEN amount END),0) today,
+         COALESCE(SUM(CASE WHEN COALESCE(decided_at, created_at) >= datetime('now', '-7 days') THEN amount END),0) week
+       FROM payments WHERE status = 'approved' AND provider <> 'admin'`);
+    const best = await one(
+      `SELECT strftime('%d.%m', COALESCE(decided_at, created_at), '+5 hours') day, COUNT(*) n
+       FROM payments WHERE status = 'approved' AND provider <> 'admin' GROUP BY day ORDER BY n DESC LIMIT 1`);
+    const now = new Date(Date.now() + 5 * 3600e3).toISOString();
+    return {
+      now: `${now.slice(8, 10)}.${now.slice(5, 7)}.${now.slice(0, 4)}, ${now.slice(11, 19)}`,
+      users: { total: u.total || 0, today: u.today || 0, week: u.week || 0 },
+      funnel: { started: f.started || 0, filled: f.filled || 0, paid: f.paid || 0, delivered: f.delivered || 0 },
+      filling: f.filling || 0, payment: f.payment || 0, pending: f.pending || 0, checking: checkingAll.n || 0,
+      money: { today: m.today, week: m.week, total: m.total },
+      best: best?.n ? best : null,
+    };
+  }
+
   // ---------- Admin ----------
   async function adminCommand(msg, cmd, arg) {
     const chatId = msg.chat.id;
     if (cmd === "/stat") {
-      const admins = reviewers().map(Number); // admin va muharrirlar hisobga olinmaydi
-      const notAdmin = admins.length ? `chat_id NOT IN (${admins.map(() => "?").join(",")})` : "1=1";
-      // kunlar Toshkent vaqti bo'yicha (UTC+5)
-      const u = await env.DB.prepare(
-        `SELECT COUNT(*) total,
-           SUM(date(first_seen, '+5 hours') = date('now', '+5 hours')) today,
-           SUM(first_seen >= datetime('now', '-7 days')) week
-         FROM users WHERE ${notAdmin}`,
-      ).bind(...admins).first();
-      const { results } = await env.DB.prepare("SELECT status, paid, COUNT(*) n FROM forms GROUP BY status, paid").all();
-      const s = { filling: 0, payment: 0, pending: 0, checking: 0, done: 0 };
-      for (const r of results) {
-        if (r.paid && r.status === "checking") s.checking += r.n;
-        else if (r.paid) s.done += r.n;
-        else if (r.status === "filling" || r.status === "review") s.filling += r.n;
-        else if (s[r.status] != null) s[r.status] += r.n;
-      }
-      const sum = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) s FROM payments WHERE status = 'approved'").first();
-      s.sum = Number(sum.s).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
-      s.users = { total: u.total || 0, today: u.today || 0, week: u.week || 0 };
-      await send(env, chatId, T.adminStats(s), { parse_mode: "HTML" });
+      await send(env, chatId, T.adminStats(await collectStats()), { parse_mode: "HTML", ...inlineKeyboard([[{ text: T.btnRefresh, callback_data: "st" }]]) });
       return true;
     }
     if (cmd === "/export") {
@@ -608,6 +629,16 @@ export function createBot(env, fonts) {
       if (kind === "af") return adminEditField(cq, Number(id), key);
       await clearAdminState(cq.from.id);
       return adminDeliver(cq, Number(id), kind === "ar");
+    }
+
+    if (data === "st") {
+      if (!isAdmin(cq.from.id)) return done();
+      await done();
+      const r = await tg(env, "editMessageText", {
+        chat_id: chatId, message_id: cq.message.message_id, text: T.adminStats(await collectStats()),
+        parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: T.btnRefresh, callback_data: "st" }]] },
+      });
+      return r;
     }
 
     if (/^(ap|rj):\d+$/.test(data)) {
